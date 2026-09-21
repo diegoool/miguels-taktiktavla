@@ -16,7 +16,7 @@
   color-scheme:light dark;
   --bg:#e9eff3; --panel:#ffffff; --ink:#12212f; --muted:#556676; --line:#cfdae2;
   --accent:#006aa7; --accent-ink:#ffffff; --focus:#0a6cff;
-  --my:#0a6fb0; --opp:#fecc00; --my-ink:#ffffff; --opp-ink:#1b1600;
+  --my:#d62839; --opp:#fecc00; --my-ink:#ffffff; --opp-ink:#1b1600;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -153,7 +153,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   <section class="look" aria-label="Utseende">
     <div class="f" role="group" aria-label="Färg ditt lag">
       <span>Färg ditt lag</span>
-      <input type="color" id="colMy" value="#0a6fb0" aria-label="Välj färg för ditt lag">
+      <input type="color" id="colMy" value="#d62839" aria-label="Välj färg för ditt lag">
     </div>
     <div class="f" role="group" aria-label="Färg motståndare">
       <span>Färg motståndare</span>
@@ -344,7 +344,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     n:11, myForm:'4-3-3', oppForm:'4-4-2', setPiece:'', situation:'',
     players:[], ball:{x:52.5,y:34}, ann:[], labels:{}, tool:'move',
     portrait:window.innerWidth<600, showOpp:true, showBall:true, channels:false,
-    colors:{m:'#0a6fb0',o:'#fecc00'}, pitch:'green', half:'full', panLo:-4, size:'n',
+    colors:{m:'#d62839',o:'#fecc00'}, pitch:'green', half:'full', panLo:-4, size:'n',
     phases:[], playing:false, linkStart:null, sel:null, textBg:false
   };
 
@@ -1083,7 +1083,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     state.setPiece=(typeof d.setPiece==='string'&&has(SETS,d.setPiece))?d.setPiece:'';
     state.situation=(!state.setPiece&&typeof d.situation==='string'&&has(SITS,d.situation))?d.situation:'';
     var hex=/^#[0-9a-f]{6}$/i, cl=d.colors||{};
-    state.colors={m:hex.test(cl.m)?cl.m.toLowerCase():'#0a6fb0',o:hex.test(cl.o)?cl.o.toLowerCase():'#fecc00'};
+    state.colors={m:hex.test(cl.m)?cl.m.toLowerCase():'#d62839',o:hex.test(cl.o)?cl.o.toLowerCase():'#fecc00'};
     state.pitch=d.pitch==='white'?'white':'green';
     state.half=d.half==='half'?'half':'full';
     state.panLo=num(d.panLo,-M,L/2,-M);
