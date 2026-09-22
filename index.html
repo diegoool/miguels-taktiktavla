@@ -34,7 +34,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 'Barlow',
 .wrap{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
 h1{font:700 clamp(32px,6vw,46px)/1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0 0 6px;letter-spacing:.01em}
 .lede{margin:0 0 18px;color:var(--muted)}
-.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+.controls,.look{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);font-weight:500}
 select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:42px;width:100%}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -56,7 +56,6 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
 
 .board{position:relative;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 14px 30px -20px rgba(0,0,0,.6)}
 #svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-.look{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:14px}
 input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer}
 [hidden]{display:none !important}
 .txt{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;min-height:42px}
@@ -98,6 +97,9 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{min-width:40px;min-height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:700 15px 'Barlow',sans-serif;cursor:pointer}
 .chip:hover{border-color:var(--accent)}
+@media (max-width:760px){
+  .controls,.look{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+}
 @media (max-width:520px){
   .wrap{padding:14px 10px 32px}
   .toolbar .spacer{display:none}
@@ -194,12 +196,16 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       <button type="button" class="btn" id="btnUndo">Ångra</button>
       <button type="button" class="btn" id="btnClearDraw">Rensa ritning</button>
       <span class="spacer"></span>
-      <label class="chk"><input type="checkbox" id="chkOpp" checked> Visa motståndare</label>
-      <label class="chk"><input type="checkbox" id="chkBall" checked> Visa boll</label>
-      <label class="chk"><input type="checkbox" id="chkChan"> Kanaler</label>
       <button type="button" class="btn" id="btnOrient">Stående plan</button>
       <button type="button" class="btn" id="btnReset">Återställ</button>
       <button type="button" class="btn primary js-shot">Skärmbild</button>
+    </div>
+
+    <div class="toolbar" role="group" aria-label="Visningsalternativ">
+      <label class="chk"><input type="checkbox" id="chkOpp" checked> Motståndare</label>
+      <label class="chk"><input type="checkbox" id="chkBall" checked> Boll</label>
+      <label class="chk" title="Delar planen i 4 remsor på längden"><input type="checkbox" id="chkChan4"> 4-kanaler</label>
+      <label class="chk" title="Delar planen i 5 remsor på längden"><input type="checkbox" id="chkChan5"> 5-kanaler</label>
     </div>
 
     <div class="board" id="board">
@@ -343,7 +349,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   var state={
     n:11, myForm:'4-3-3', oppForm:'4-4-2', setPiece:'', situation:'',
     players:[], ball:{x:52.5,y:34}, ann:[], labels:{}, tool:'move',
-    portrait:window.innerWidth<600, showOpp:true, showBall:true, channels:false,
+    portrait:window.innerWidth<600, showOpp:true, showBall:true, chan5:false, chan4:false,
     colors:{m:'#d62839',o:'#fecc00'}, pitch:'green', half:'full', panLo:-4, size:'n',
     phases:[], playing:false, linkStart:null, sel:null, textBg:false
   };
@@ -501,9 +507,10 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     var rot=por?90:0;
     var h='';
 
-    if(state.channels){
-      var cw=W/5;
-      for(var i=0;i<5;i++){
+    var chanN=state.chan5?5:(state.chan4?4:0);
+    if(chanN){
+      var cw=W/chanN;
+      for(var i=0;i<chanN;i++){
         if(i%2===0) h+='<rect x="0" y="'+(i*cw)+'" width="'+L+'" height="'+cw+'" style="fill:var(--chan)" opacity=".12" pointer-events="none"/>';
         if(i>0) h+='<line x1="0" y1="'+(i*cw)+'" x2="'+L+'" y2="'+(i*cw)+'" style="stroke:var(--ann)" stroke-width=".25" stroke-dasharray="1.2 1.2" opacity=".55" pointer-events="none"/>';
       }
@@ -758,7 +765,8 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   $('#btnClearDraw').addEventListener('click',function(){ state.ann=[]; state.linkStart=null; state.sel=null; render(); });
   $('#chkOpp').addEventListener('change',function(e){ state.showOpp=e.target.checked; render(); });
   $('#chkBall').addEventListener('change',function(e){ state.showBall=e.target.checked; render(); });
-  $('#chkChan').addEventListener('change',function(e){ state.channels=e.target.checked; render(); });
+  $('#chkChan5').addEventListener('change',function(e){ state.chan5=e.target.checked; if(state.chan5){ state.chan4=false; $('#chkChan4').checked=false; } render(); });
+  $('#chkChan4').addEventListener('change',function(e){ state.chan4=e.target.checked; if(state.chan4){ state.chan5=false; $('#chkChan5').checked=false; } render(); });
   $('#btnOrient').addEventListener('click',function(){ state.portrait=!state.portrait; hidePop(); render(); updateUI(); });
   $('#btnReset').addEventListener('click',function(){ state.labels={}; rebuild(); });
 
@@ -1067,7 +1075,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       ball:{x:+state.ball.x.toFixed(2),y:+state.ball.y.toFixed(2)},
       ann:ann, labels:state.labels, colors:state.colors,
       pitch:state.pitch, half:state.half, panLo:state.panLo, size:state.size, portrait:state.portrait,
-      showOpp:state.showOpp, showBall:state.showBall, channels:state.channels,
+      showOpp:state.showOpp, showBall:state.showBall, chan5:state.chan5, chan4:state.chan4,
       phases:state.phases,
       images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; })
     };
@@ -1089,7 +1097,9 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     state.panLo=num(d.panLo,-M,L/2,-M);
     state.size=d.size==='s'?'s':'n';
     state.portrait=!!d.portrait;
-    state.showOpp=d.showOpp!==false; state.showBall=d.showBall!==false; state.channels=!!d.channels;
+    state.showOpp=d.showOpp!==false; state.showBall=d.showBall!==false;
+    state.chan5=d.chan5!==undefined?!!d.chan5:!!d.channels; state.chan4=!!d.chan4;
+    if(state.chan5&&state.chan4) state.chan4=false;
     state.tool='move'; state.linkStart=null;
 
     rebuild();
@@ -1140,7 +1150,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     $('#size').value=String(state.n); fillForms();
     $('#setPiece').value=state.setPiece; $('#situation').value=state.situation;
     $('#pitchSel').value=state.pitch; $('#sizeSel').value=state.size;
-    $('#chkOpp').checked=state.showOpp; $('#chkBall').checked=state.showBall; $('#chkChan').checked=state.channels;
+    $('#chkOpp').checked=state.showOpp; $('#chkBall').checked=state.showBall; $('#chkChan5').checked=state.chan5; $('#chkChan4').checked=state.chan4;
     $('#colMy').value=state.colors.m; $('#colOpp').value=state.colors.o;
     applyTheme(); hidePop(); render(); updateUI();
     return true;
