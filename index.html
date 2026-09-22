@@ -309,6 +309,17 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   </div>
 </div>
 
+<div class="shot" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetTitle" hidden>
+  <div class="shot-card">
+    <h2 id="resetTitle">Återställa tavlan?</h2>
+    <p>Alla spelarnamn tas bort och formationen, ritningarna, faserna och vyn nollställs till utgångsläget. Det går inte att ångra.</p>
+    <div class="row">
+      <button type="button" class="btn primary" id="resetConfirm">Ja, återställ</button>
+      <button type="button" class="btn" id="resetCancel">Avbryt</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
@@ -829,7 +840,19 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   $('#btnNumMode').addEventListener('click',function(){ setNameMode(false); });
   $('#btnNameMode').addEventListener('click',function(){ setNameMode(true); });
   $('#btnOrient').addEventListener('click',function(){ state.portrait=!state.portrait; hidePop(); render(); updateUI(); });
-  $('#btnReset').addEventListener('click',function(){ state.labels={}; rebuild(); });
+  $('#btnReset').addEventListener('click',function(){
+    if(state.playing) return;
+    hidePop();
+    $('#resetModal').hidden=false;
+    setTimeout(function(){ $('#resetCancel').focus(); },30);
+  });
+  $('#resetCancel').addEventListener('click',function(){ $('#resetModal').hidden=true; });
+  $('#resetModal').addEventListener('click',function(e){ if(e.target===$('#resetModal')) $('#resetModal').hidden=true; });
+  $('#resetConfirm').addEventListener('click',function(){
+    $('#resetModal').hidden=true;
+    state.labels={}; rebuild();
+  });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#resetModal').hidden) $('#resetModal').hidden=true; });
 
   $('#size').addEventListener('change',function(e){
     state.n=+e.target.value;
