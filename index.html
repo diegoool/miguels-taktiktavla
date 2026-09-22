@@ -816,15 +816,16 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     if(state.phases.length<2||state.playing) return;
     hidePop();
     state.playing=true; updateUI();
-    var ph=state.phases, dur=1500, total=(ph.length-1)*dur, t0=performance.now();
-    applySnap(ph[0]);
+    var ph=state.phases.slice(), steps=ph.length-1, dur=1500, total=steps*dur, t0=null;
+    applySnap(ph[0]); render();
     function frame(now){
-      var el=now-t0;
+      if(t0===null) t0=now;
+      var el=clamp(now-t0,0,total);
       if(el>=total){
         applySnap(ph[ph.length-1]); state.playing=false; render(); updateUI(); return;
       }
-      var i=Math.floor(el/dur), t=ease((el-i*dur)/dur);
-      applySnap(lerpSnap(ph[i],ph[i+1],t)); render();
+      var i=clamp(Math.floor(el/dur),0,steps-1), t=clamp((el-i*dur)/dur,0,1);
+      applySnap(lerpSnap(ph[i],ph[i+1],ease(t))); render();
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
