@@ -100,6 +100,9 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 @media (max-width:760px){
   .controls,.look{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 }
+.fsbtn{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;z-index:60;width:42px;height:42px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.fsbtn:hover{border-color:var(--accent)}
+.fsbtn svg{width:20px;height:20px;display:block}
 @media (max-width:520px){
   .wrap{padding:14px 10px 32px}
   .toolbar .spacer{display:none}
@@ -107,6 +110,11 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 </style>
 </head>
 <body>
+<button type="button" id="fsBtn" class="fsbtn" title="Helskärm" aria-label="Helskärm">
+  <svg id="fsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>
+  </svg>
+</button>
 <main class="wrap">
   <h1>Miguels Taktiktavla</h1>
   <p class="lede">Miguels taktiktavla är ett privat verktyg för att planera och bygga formationer, rita löpningar och animera spelet.</p>
@@ -240,6 +248,11 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       <button type="button" class="btn" id="btnClearPhases" disabled>Rensa faser</button>
       <div class="chips" id="chips" aria-label="Faser"></div>
     </div>
+    <div class="row" style="margin-top:10px">
+      <input class="txt" type="text" id="animName" maxlength="60" placeholder="Namn på animationen" aria-label="Namn på animationen" style="flex:1 1 220px;max-width:320px">
+      <button type="button" class="btn" id="animSave" disabled>Spara animation</button>
+    </div>
+    <p class="hint" id="animMsg" role="status"></p>
   </section>
 
   <section class="anim" aria-label="Sessioner">
@@ -253,6 +266,10 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     </div>
     <p class="hint" id="sesMsg" role="status"></p>
     <div class="gal" id="sesList"></div>
+
+    <h3>Animationer i den här sessionen</h3>
+    <p>Sparade animationer följer med när du trycker på Spara session. Tryck på Spara animation i Animera-delen för att lägga till en.</p>
+    <div class="gal" id="animList"></div>
 
     <h3>Bilder i den här sessionen</h3>
     <p>Skärmbilder du tar följer med när du trycker på Spara session.</p>
@@ -566,6 +583,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     $('#btnCapture').textContent=state.phases.length?'Fånga fas '+(state.phases.length+1):'Fånga start';
     $('#btnCapture').disabled=state.playing;
     $('#btnPlay').disabled=state.phases.length<2||state.playing;
+    $('#animSave').disabled=state.phases.length<2||state.playing;
     $('#btnClearPhases').disabled=!state.phases.length||state.playing;
     var c='';
     state.phases.forEach(function(_,i){c+='<button type="button" class="chip" data-phase="'+i+'" aria-label="Visa fas '+(i+1)+'">'+(i+1)+'</button>'});
@@ -808,6 +826,58 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     state.phases.push(snapshot()); updateUI();
   });
   $('#btnClearPhases').addEventListener('click',function(){ state.phases=[]; updateUI(); });
+
+  /* ---------- Sparade animationer ---------- */
+  var anims=[], animArmed=null, animTimer=null;
+  function animMsg(t){ $('#animMsg').textContent=t; }
+  function animDefaultName(){ return state.myForm+' mot '+state.oppForm+' – animation'; }
+  function renderAnims(){
+    var g=$('#animList');
+    if(!anims.length){
+      g.innerHTML='<p class="hint">Inga sparade animationer än.</p>';
+      return;
+    }
+    var h='';
+    anims.forEach(function(r){
+      h+='<article class="card"><div class="cn">'+esc(r.name)+'</div><div class="cd">'+r.phases.length+' faser</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
+         '<div class="row"><button type="button" class="btn primary" data-aload="'+r.id+'">Ladda</button>'+
+         '<button type="button" class="btn" data-adel="'+r.id+'">'+(animArmed===r.id?'Bekräfta':'Ta bort')+'</button></div></article>';
+    });
+    g.innerHTML=h;
+  }
+  $('#animSave').addEventListener('click',function(){
+    if(state.phases.length<2||state.playing) return;
+    var name=$('#animName').value.trim()||animDefaultName();
+    var rec={id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name.slice(0,60),ts:Date.now(),phases:state.phases.map(function(s){ return {p:Object.assign({},s.p),b:s.b.slice()}; })};
+    anims.unshift(rec); renderAnims();
+    $('#animName').value='';
+    animMsg('La till animationen "'+rec.name+'". Tryck på Spara session för att spara den med sessionen.');
+  });
+  $('#animName').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('#animSave').click(); } });
+  $('#animList').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    var id=b.dataset.aload||b.dataset.adel;
+    var rec=anims.filter(function(r){return r.id===id})[0];
+    if(!rec) return;
+    if(b.dataset.aload){
+      if(state.playing) return;
+      state.phases=sanitizePhases(rec.phases);
+      if(state.phases.length){ applySnap(state.phases[0]); }
+      hidePop(); render(); updateUI();
+      animMsg('Laddade "'+rec.name+'" i Animera.');
+    } else if(b.dataset.adel){
+      if(animArmed===id){
+        clearTimeout(animTimer); animArmed=null;
+        anims=anims.filter(function(r){return r.id!==id});
+        renderAnims();
+        animMsg('Animationen togs bort.');
+      } else {
+        animArmed=id; renderAnims();
+        clearTimeout(animTimer);
+        animTimer=setTimeout(function(){ animArmed=null; renderAnims(); },3000);
+      }
+    }
+  });
   $('#chips').addEventListener('click',function(e){
     var b=e.target.closest('[data-phase]'); if(!b||state.playing) return;
     applySnap(state.phases[+b.dataset.phase]); render();
@@ -1065,6 +1135,19 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   var sessions=[], sesArmed=null, sesTimer=null;
   function has(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
   function num(v,a,b,def){ v=+v; return isFinite(v)?clamp(v,a,b):def; }
+  function sanitizePhases(arr){
+    var out=[];
+    (Array.isArray(arr)?arr.slice(0,30):[]).forEach(function(ph){
+      if(!ph||typeof ph.p!=='object'||!ph.p||!Array.isArray(ph.b)) return;
+      var snap={p:{},b:[num(ph.b[0],-4,L+4,52.5),num(ph.b[1],-4,W+4,34)]};
+      state.players.forEach(function(p){
+        var q=ph.p[p.id];
+        snap.p[p.id]=Array.isArray(q)?[num(q[0],-4,L+4,p.x),num(q[1],-4,W+4,p.y)]:[p.x,p.y];
+      });
+      out.push(snap);
+    });
+    return out;
+  }
   function sesMsg(t){ $('#sesMsg').textContent=t; }
 
   function serialize(name){
@@ -1078,7 +1161,8 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       pitch:state.pitch, half:state.half, panLo:state.panLo, size:state.size, portrait:state.portrait,
       showOpp:state.showOpp, showBall:state.showBall, chan5:state.chan5, chan4:state.chan4,
       phases:state.phases,
-      images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; })
+      images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
+      animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; })
     };
   }
 
@@ -1129,15 +1213,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
         state.ann.push({t:'text',x:num(a.x,-10,L+10,52.5),y:num(a.y,-10,W+10,34),w:num(a.w,6,140,20),h:num(a.h,3.6,80,6),s:t,bg:!!a.bg});
       }
     });
-    (Array.isArray(d.phases)?d.phases.slice(0,30):[]).forEach(function(ph){
-      if(!ph||typeof ph.p!=='object'||!ph.p||!Array.isArray(ph.b)) return;
-      var snap={p:{},b:[num(ph.b[0],-4,L+4,52.5),num(ph.b[1],-4,W+4,34)]};
-      state.players.forEach(function(p){
-        var q=ph.p[p.id];
-        snap.p[p.id]=Array.isArray(q)?[num(q[0],-4,L+4,p.x),num(q[1],-4,W+4,p.y)]:[p.x,p.y];
-      });
-      state.phases.push(snap);
-    });
+    state.phases=sanitizePhases(d.phases);
 
     gallery=[];
     (Array.isArray(d.images)?d.images.slice(0,50):[]).forEach(function(im){
@@ -1146,6 +1222,15 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       gallery.push({id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name:String(im.name==null?'Bild':im.name).slice(0,60),ts:num(im.ts,0,8.64e15,Date.now()),data:im.data});
     });
     renderGallery();
+
+    anims=[];
+    (Array.isArray(d.animations)?d.animations.slice(0,50):[]).forEach(function(a){
+      if(!a||typeof a!=='object') return;
+      var ph=sanitizePhases(a.phases);
+      if(ph.length<2) return;
+      anims.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:String(a.name==null?'Animation':a.name).slice(0,60),ts:num(a.ts,0,8.64e15,Date.now()),phases:ph});
+    });
+    renderAnims();
 
     /* Synka kontrollerna */
     $('#size').value=String(state.n); fillForms();
@@ -1166,7 +1251,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     var h='';
     sessions.forEach(function(r){
       var d=r.data||{}, sub=(d.n?d.n+' mot '+d.n+', ':'')+(d.myForm||'')+' mot '+(d.oppForm||'');
-      h+='<article class="card"><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+((d.images&&d.images.length)||0)+' bilder</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
+      h+='<article class="card"><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+((d.animations&&d.animations.length)||0)+' animationer, '+((d.images&&d.images.length)||0)+' bilder</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
          '<div class="row"><button type="button" class="btn primary" data-sload="'+r.id+'">Ladda</button>'+
          (dlCap?'<button type="button" class="btn" data-sexp="'+r.id+'">Exportera</button>':'')+
          '<button type="button" class="btn" data-sdel="'+r.id+'">'+(sesArmed===r.id?'Bekräfta':'Ta bort')+'</button></div></article>';
@@ -1256,7 +1341,39 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   fillForms();
   rebuild();
   initGallery();
+  renderAnims();
   initSessions();
+
+  /* ---------- Helskärm ---------- */
+  var fsBtn=$('#fsBtn'), fsIcon=$('#fsIcon');
+  var ICON_EXPAND='<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>';
+  var ICON_CLOSE='<path d="M6 6l12 12M18 6L6 18"/>';
+  function fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
+  function fsSupported(){ var el=document.documentElement; return !!(el.requestFullscreen||el.webkitRequestFullscreen); }
+  function updateFsBtn(){
+    var on=!!fsEl();
+    fsIcon.innerHTML=on?ICON_CLOSE:ICON_EXPAND;
+    var label=on?'Stäng helskärm':'Helskärm';
+    fsBtn.title=label; fsBtn.setAttribute('aria-label',label);
+  }
+  if(fsBtn){
+    if(!fsSupported()){ fsBtn.hidden=true; }
+    else {
+      fsBtn.addEventListener('click',function(){
+        if(fsEl()){
+          var ex=document.exitFullscreen||document.webkitExitFullscreen;
+          if(ex) ex.call(document);
+        } else {
+          var el=document.documentElement;
+          var req=el.requestFullscreen||el.webkitRequestFullscreen;
+          if(req) req.call(el).catch(function(){});
+        }
+      });
+      document.addEventListener('fullscreenchange',updateFsBtn);
+      document.addEventListener('webkitfullscreenchange',updateFsBtn);
+      updateFsBtn();
+    }
+  }
 })();
 </script>
 </body>
