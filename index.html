@@ -219,6 +219,10 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       <label class="chk"><input type="checkbox" id="chkBall" checked> Boll</label>
       <label class="chk" title="Delar planen i 4 remsor på längden"><input type="checkbox" id="chkChan4"> 4-kanaler</label>
       <label class="chk" title="Delar planen i 5 remsor på längden"><input type="checkbox" id="chkChan5"> 5-kanaler</label>
+      <div class="seg" role="group" aria-label="Visa nummer eller namn i cirkeln">
+        <button type="button" id="btnNumMode" aria-pressed="true" title="Visa spelarnummer i cirkeln">Nummer</button>
+        <button type="button" id="btnNameMode" aria-pressed="false" title="Visa spelarnamn i cirkeln, om det finns">Namn</button>
+      </div>
     </div>
 
     <div class="board" id="board">
@@ -378,7 +382,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     players:[], ball:{x:52.5,y:34}, ann:[], labels:{}, tool:'move',
     portrait:window.innerWidth<600, showOpp:true, showBall:true, chan5:false, chan4:false,
     colors:{m:'#d62839',o:'#fecc00'}, pitch:'green', half:'full', panLo:-4, size:'n',
-    phases:[], playing:false, linkStart:null, sel:null, textBg:false
+    phases:[], playing:false, linkStart:null, sel:null, textBg:false, namesInCircle:false
   };
 
   /* ---------- Hjälpfunktioner ---------- */
@@ -455,6 +459,14 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   /* Textrutor: mått och radbrytning */
   var mctx=document.createElement('canvas').getContext('2d');
   function measure(t,fs){ mctx.font='700 '+fs+'px Arial, Helvetica, sans-serif'; return mctx.measureText(t).width; }
+  var OVAL_MINFS=1.7, OVAL_MAXFS=3.0;
+  var OVAL_RX_BASE=(function(){ return (measure('Alexanders',OVAL_MINFS)/0.86)/2+0.3; })();
+  function fitOvalText(text,maxW){
+    var t=text.length>10?text.slice(0,10):text;
+    for(var fs=OVAL_MAXFS; fs>=OVAL_MINFS; fs-=0.1){ if(measure(t,fs)<=maxW) return {fs:fs,text:t}; }
+    while(t.length>1&&measure(t,OVAL_MINFS)>maxW){ t=t.slice(0,-1); }
+    return {fs:OVAL_MINFS,text:t};
+  }
   function wrapText(text,fs,maxW,allowBreak){
     var words=text.split(/\s+/).filter(Boolean), lines=[], cur='';
     for(var i=0;i<words.length;i++){
@@ -566,13 +578,26 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     state.ann.forEach(function(a,i){ if(a.t==='text') h+=textBody(a,i,rot); });
 
     var k=state.size==='s'?0.7:1, pr=2.7*k;
+    var oval=state.namesInCircle, rx=oval?OVAL_RX_BASE*k:pr, ry=pr, maxW=rx*2*0.86;
     state.players.slice().sort(function(a,b){ return (a.team==='m'?1:0)-(b.team==='m'?1:0); }).forEach(function(p){
       if(!visible(p)) return;
-      var lab=state.labels[p.id];
+      var lab=state.labels[p.id], center, below='', ringShape;
+      if(oval){
+        if(lab){
+          var fit=fitOvalText(lab,maxW);
+          center='<text class="num" dy=".34em" style="font-size:'+fit.fs.toFixed(2)+'px">'+esc(fit.text)+'</text>';
+        } else {
+          center='<text class="num" dy=".34em" style="font-size:'+(3*k).toFixed(2)+'px">'+p.num+'</text>';
+        }
+        ringShape='<ellipse rx="'+(rx+0.1).toFixed(2)+'" ry="'+(ry+0.1).toFixed(2)+'" fill="transparent"/><ellipse class="ring" rx="'+rx.toFixed(2)+'" ry="'+ry.toFixed(2)+'"/>';
+      } else {
+        center='<text class="num" dy=".34em" style="font-size:'+(3.3*k).toFixed(2)+'px">'+p.num+'</text>';
+        if(lab) below='<text class="lab" y="'+(pr+3).toFixed(2)+'" style="font-size:'+Math.max(2.2,2.7*k).toFixed(2)+'px">'+esc(lab)+'</text>';
+        ringShape='<circle r="2.8" fill="transparent"/><circle class="ring" r="'+pr.toFixed(2)+'"/>';
+      }
       h+='<g class="pl pl-'+p.team+(state.linkStart===p.id?' sel':'')+'" data-id="'+p.id+'" transform="translate('+p.x+' '+p.y+')">'+
-         '<circle r="2.8" fill="transparent"/><circle class="ring" r="'+pr.toFixed(2)+'"/>'+
-         '<g transform="rotate('+rot+')"><text class="num" dy=".34em" style="font-size:'+(3.3*k).toFixed(2)+'px">'+p.num+'</text>'+
-         (lab?'<text class="lab" y="'+(pr+3).toFixed(2)+'" style="font-size:'+Math.max(2.2,2.7*k).toFixed(2)+'px">'+esc(lab)+'</text>':'')+'</g></g>';
+         ringShape+
+         '<g transform="rotate('+rot+')">'+center+below+'</g></g>';
     });
 
     if(state.sel!==null&&state.tool==='move'&&state.ann[state.sel]&&state.ann[state.sel].t==='text') h+=textHandle(state.ann[state.sel],state.sel,rot);
@@ -795,6 +820,14 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   $('#chkBall').addEventListener('change',function(e){ state.showBall=e.target.checked; render(); });
   $('#chkChan5').addEventListener('change',function(e){ state.chan5=e.target.checked; if(state.chan5){ state.chan4=false; $('#chkChan4').checked=false; } render(); });
   $('#chkChan4').addEventListener('change',function(e){ state.chan4=e.target.checked; if(state.chan4){ state.chan5=false; $('#chkChan5').checked=false; } render(); });
+  function setNameMode(on){
+    state.namesInCircle=on;
+    $('#btnNumMode').setAttribute('aria-pressed',on?'false':'true');
+    $('#btnNameMode').setAttribute('aria-pressed',on?'true':'false');
+    render();
+  }
+  $('#btnNumMode').addEventListener('click',function(){ setNameMode(false); });
+  $('#btnNameMode').addEventListener('click',function(){ setNameMode(true); });
   $('#btnOrient').addEventListener('click',function(){ state.portrait=!state.portrait; hidePop(); render(); updateUI(); });
   $('#btnReset').addEventListener('click',function(){ state.labels={}; rebuild(); });
 
@@ -1169,7 +1202,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       ball:{x:+state.ball.x.toFixed(2),y:+state.ball.y.toFixed(2)},
       ann:ann, labels:state.labels, colors:state.colors,
       pitch:state.pitch, half:state.half, panLo:state.panLo, size:state.size, portrait:state.portrait,
-      showOpp:state.showOpp, showBall:state.showBall, chan5:state.chan5, chan4:state.chan4,
+      showOpp:state.showOpp, showBall:state.showBall, chan5:state.chan5, chan4:state.chan4, namesInCircle:state.namesInCircle,
       phases:state.phases,
       images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
       animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; })
@@ -1195,6 +1228,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     state.showOpp=d.showOpp!==false; state.showBall=d.showBall!==false;
     state.chan5=d.chan5!==undefined?!!d.chan5:!!d.channels; state.chan4=!!d.chan4;
     if(state.chan5&&state.chan4) state.chan4=false;
+    state.namesInCircle=!!d.namesInCircle;
     state.tool='move'; state.linkStart=null;
 
     rebuild();
@@ -1247,6 +1281,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     $('#setPiece').value=state.setPiece; $('#situation').value=state.situation;
     $('#pitchSel').value=state.pitch; $('#sizeSel').value=state.size;
     $('#chkOpp').checked=state.showOpp; $('#chkBall').checked=state.showBall; $('#chkChan5').checked=state.chan5; $('#chkChan4').checked=state.chan4;
+    $('#btnNumMode').setAttribute('aria-pressed',state.namesInCircle?'false':'true'); $('#btnNameMode').setAttribute('aria-pressed',state.namesInCircle?'true':'false');
     $('#colMy').value=state.colors.m; $('#colOpp').value=state.colors.o;
     applyTheme(); hidePop(); render(); updateUI();
     return true;
