@@ -120,9 +120,6 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 @media (max-width:760px){
   .controls,.look{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 }
-.fsbtn{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;z-index:60;width:42px;height:42px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
-.fsbtn:hover{border-color:var(--accent)}
-.fsbtn svg{width:20px;height:20px;display:block}
 .boardfsbtn{position:absolute;top:8px;right:8px;z-index:10;width:34px;height:34px;border-radius:8px;background:rgba(10,20,15,.45);border:1px solid rgba(255,255,255,.5);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .boardfsbtn:hover{background:rgba(10,20,15,.65)}
 .boardfsbtn svg{width:17px;height:17px;display:block}
@@ -135,11 +132,6 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 </style>
 </head>
 <body>
-<button type="button" id="fsBtn" class="fsbtn" title="Helskärm" aria-label="Helskärm">
-  <svg id="fsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>
-  </svg>
-</button>
 <main class="wrap">
   <h1>Miguels Taktiktavla</h1>
   <p class="lede">Miguels taktiktavla är ett privat verktyg för att planera och bygga formationer, rita löpningar och animera spelet.</p>
@@ -1499,38 +1491,33 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   renderAnims();
   initSessions();
 
-  /* ---------- Helskärm ---------- */
-  var ICON_EXPAND='<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>';
-  var ICON_CLOSE='<path d="M6 6l12 12M18 6L6 18"/>';
-  function fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
-  function fsSupported(){ var el=document.documentElement; return !!(el.requestFullscreen||el.webkitRequestFullscreen); }
-  function setupFsToggle(btn,icon,target,label){
+  /* ---------- Helskärm för planen ---------- */
+  (function(){
+    var btn=$('#boardFsBtn'), icon=$('#boardFsIcon');
+    var ICON_EXPAND='<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>';
+    var ICON_CLOSE='<path d="M6 6l12 12M18 6L6 18"/>';
+    function fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
     if(!btn) return;
-    if(!fsSupported()){ btn.hidden=true; return; }
+    if(!(board.requestFullscreen||board.webkitRequestFullscreen)){ btn.hidden=true; return; }
     function update(){
-      var on=fsEl()===target;
+      var on=fsEl()===board;
       icon.innerHTML=on?ICON_CLOSE:ICON_EXPAND;
-      var t=on?('Stäng '+label.toLowerCase()):label;
+      var t=on?'Stäng helskärm för planen':'Helskärm för planen';
       btn.title=t; btn.setAttribute('aria-label',t);
     }
     btn.addEventListener('click',function(){
-      var req=target.requestFullscreen||target.webkitRequestFullscreen;
-      if(fsEl()===target){
+      if(fsEl()===board){
         var ex=document.exitFullscreen||document.webkitExitFullscreen;
         if(ex) ex.call(document);
-      } else if(fsEl()){
-        var ex2=document.exitFullscreen||document.webkitExitFullscreen;
-        if(ex2) ex2.call(document).then(function(){ if(req) req.call(target).catch(function(){}); }).catch(function(){});
-      } else if(req){
-        req.call(target).catch(function(){});
+      } else {
+        var req=board.requestFullscreen||board.webkitRequestFullscreen;
+        if(req) req.call(board).catch(function(){});
       }
     });
     document.addEventListener('fullscreenchange',update);
     document.addEventListener('webkitfullscreenchange',update);
     update();
-  }
-  setupFsToggle($('#fsBtn'),$('#fsIcon'),document.documentElement,'Helskärm');
-  setupFsToggle($('#boardFsBtn'),$('#boardFsIcon'),board,'Helskärm för planen');
+  })();
 })();
 </script>
 </body>
