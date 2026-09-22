@@ -1514,12 +1514,15 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       btn.title=t; btn.setAttribute('aria-label',t);
     }
     btn.addEventListener('click',function(){
+      var req=target.requestFullscreen||target.webkitRequestFullscreen;
       if(fsEl()===target){
         var ex=document.exitFullscreen||document.webkitExitFullscreen;
         if(ex) ex.call(document);
-      } else if(!fsEl()){
-        var req=target.requestFullscreen||target.webkitRequestFullscreen;
-        if(req) req.call(target).catch(function(){});
+      } else if(fsEl()){
+        var ex2=document.exitFullscreen||document.webkitExitFullscreen;
+        if(ex2) ex2.call(document).then(function(){ if(req) req.call(target).catch(function(){}); }).catch(function(){});
+      } else if(req){
+        req.call(target).catch(function(){});
       }
     });
     document.addEventListener('fullscreenchange',update);
