@@ -54,7 +54,43 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
 .legend{display:flex;gap:14px;font-size:14px;color:var(--muted);align-items:center;flex-wrap:wrap}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1.5px solid #fff;box-shadow:0 0 0 1px var(--line)}
 
+.board-row{display:flex;gap:14px;align-items:flex-start}
 .board{position:relative;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 14px 30px -20px rgba(0,0,0,.6)}
+.board-row .board{margin:0;min-width:0;flex:1 1 auto}
+.truppen{flex:0 0 240px;width:240px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;max-height:min(760px,86vh);overflow:hidden;display:flex;flex-direction:column;transition:flex-basis .18s ease,width .18s ease,padding .18s ease}
+.truppen.collapsed{flex:0 0 40px;width:40px;padding:12px 4px}
+.truppen-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex:0 0 auto}
+.truppen h2{font:700 19px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0;white-space:nowrap;letter-spacing:.02em}
+.truppen.collapsed{align-items:center}
+.truppen.collapsed .truppen-head{flex-direction:column;gap:10px}
+.truppen.collapsed h2{writing-mode:vertical-rl;text-orientation:upright;white-space:nowrap;margin:0;letter-spacing:.08em}
+.truppen.collapsed .tp-body{display:none}
+.tbtn{border:0;background:transparent;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;border-radius:8px;flex:0 0 auto}
+.tbtn:hover{background:var(--bg)}
+.tbtn svg{width:18px;height:18px}
+.tp-body{display:flex;flex-direction:column;gap:10px;min-height:0}
+.tp-add{display:flex;gap:6px}
+.tp-add input[type=number]{width:56px;flex:0 0 56px}
+.tp-add input[type=text]{flex:1 1 auto;min-width:0}
+.tp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0}
+.tp-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;cursor:grab;touch-action:none}
+.tp-item:active{cursor:grabbing}
+.tp-item.dragging{opacity:.4}
+.tp-num{min-width:24px;height:24px;padding:0 3px;border-radius:6px;background:var(--accent);color:var(--accent-ink);font:700 12px 'Barlow',sans-serif;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.tp-name{flex:1 1 auto;overflow-wrap:anywhere;font-weight:600;font-size:14px;min-width:0}
+.tp-del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:3px 7px;border-radius:6px;flex:0 0 auto}
+.tp-del:hover{background:var(--line);color:var(--ink)}
+.drag-ghost.tp-item{position:fixed;z-index:80;pointer-events:none;opacity:.92;box-shadow:0 14px 32px rgba(0,0,0,.45);transform:rotate(-1deg)}
+#svg .pl.drop-target .ring{stroke:var(--accent);stroke-width:1.1}
+@media (max-width:760px){
+  .board-row{flex-direction:column}
+  .board-row .truppen{order:-1}
+  .board-row .board{max-width:100% !important;width:100%}
+  .truppen{width:100%;flex-basis:auto;max-height:300px}
+  .truppen.collapsed{width:100%;flex-basis:auto;max-height:48px;padding:10px 12px;align-items:stretch}
+  .truppen.collapsed .truppen-head{flex-direction:row;justify-content:flex-start;gap:8px;margin-bottom:0}
+  .truppen.collapsed h2{writing-mode:horizontal-tb;text-orientation:mixed;letter-spacing:.02em}
+}
 #svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer}
 [hidden]{display:none !important}
@@ -84,10 +120,12 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 #svg .pl{cursor:grab}
 #svg .ball{cursor:grab}
 
-.pop{position:absolute;z-index:5;display:flex;flex-wrap:wrap;max-width:300px;gap:6px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);transform:translate(-50%,10px)}
+.pop{position:absolute;z-index:5;display:flex;flex-wrap:wrap;width:250px;max-width:calc(100vw - 24px);gap:6px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);transform:translate(-50%,10px)}
 .pop[hidden]{display:none}
 .popbg{flex-basis:100%;min-height:32px}
-.pop input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:160px;min-width:0}
+.popnum{flex-basis:100%;display:flex;align-items:center;gap:8px;min-height:32px;font-size:13px;color:var(--muted)}
+.pop input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.pop input#popInput{flex:1 1 0;min-width:80px}
 
 .anim{margin-top:18px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
 .anim h2{font:700 24px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0 0 4px}
@@ -233,12 +271,14 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       <label class="chk"><input type="checkbox" id="chkBall" checked> Boll</label>
       <label class="chk" title="Delar planen i 4 remsor på längden"><input type="checkbox" id="chkChan4"> 4-kanaler</label>
       <label class="chk" title="Delar planen i 5 remsor på längden"><input type="checkbox" id="chkChan5"> 5-kanaler</label>
+      <label class="chk"><input type="checkbox" id="chkTruppen" checked> Truppen</label>
       <div class="seg" role="group" aria-label="Visa nummer eller namn i cirkeln">
         <button type="button" id="btnNumMode" aria-pressed="true" title="Visa spelarnummer i cirkeln">Nummer</button>
         <button type="button" id="btnNameMode" aria-pressed="false" title="Visa spelarnamn i cirkeln, om det finns">Namn</button>
       </div>
     </div>
 
+    <div class="board-row">
     <div class="board" id="board">
       <button type="button" id="boardFsBtn" class="boardfsbtn" title="Helskärm för planen" aria-label="Helskärm för planen">
         <svg id="boardFsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -261,7 +301,30 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
         <input id="popInput" type="text" maxlength="200" autocomplete="off" aria-label="Text">
         <button type="button" class="btn primary" id="popOk">OK</button>
         <label class="chk popbg" id="popBgWrap" hidden><input type="checkbox" id="popBg"> Vit bakgrund, svart text</label>
+        <div class="popnum" id="popNumWrap" hidden>
+          <label for="popNum">Tröjnummer</label>
+          <input id="popNum" class="txt" type="number" min="1" max="99" style="width:64px">
+        </div>
       </div>
+    </div>
+
+    <aside class="truppen" id="truppen">
+      <div class="truppen-head">
+        <button type="button" id="truppenToggle" class="tbtn" title="Dölj truppen" aria-label="Dölj truppen" aria-expanded="true">
+          <svg id="truppenIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>TRUPPEN</h2>
+      </div>
+      <div class="tp-body">
+        <div class="tp-add">
+          <input class="txt" type="number" id="tpNum" min="1" max="99" placeholder="Nr" aria-label="Tröjnummer">
+          <input class="txt" type="text" id="tpName" maxlength="40" placeholder="Namn" aria-label="Spelarens namn">
+        </div>
+        <button type="button" class="btn primary" id="tpAdd">Lägg till spelare</button>
+        <p class="hint" id="tpMsg" role="status" style="margin:0">Dra en spelare härifrån till en bricka på planen för att sätta namn och nummer.</p>
+        <ul class="tp-list" id="tpList"></ul>
+      </div>
+    </aside>
     </div>
     <p class="hint" id="hint"></p>
     <div class="legend" style="margin-top:6px"><span><i style="background:var(--my)"></i>Ditt lag</span><span><i style="background:var(--opp)"></i>Motståndare</span></div>
@@ -281,6 +344,18 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       <button type="button" class="btn" id="animSave" disabled>Spara animation</button>
     </div>
     <p class="hint" id="animMsg" role="status"></p>
+  </section>
+
+  <section class="anim" aria-label="Custom fast situation">
+    <h2>Custom fast situation</h2>
+    <p>Ställ upp spelarna och lägg till pilar, länkar eller text för din egna fasta situation. Spara den för att lägga till den som ett val under "Fast situation" ovan.</p>
+    <div class="row">
+      <input class="txt" type="text" id="csName" maxlength="60" placeholder="Namn på situationen" aria-label="Namn på situationen" style="flex:1 1 220px;max-width:320px">
+      <button type="button" class="btn primary" id="csSave">Spara fast situation</button>
+      <button type="button" class="btn" id="csCancelEdit" hidden>Avbryt redigering</button>
+    </div>
+    <p class="hint" id="csMsg" role="status"></p>
+    <div class="gal" id="csList"></div>
   </section>
 
   <section class="anim" aria-label="Sessioner">
@@ -412,12 +487,26 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     players:[], ball:{x:52.5,y:34}, ann:[], labels:{}, tool:'move',
     portrait:window.innerWidth<600, showOpp:true, showBall:true, chan5:false, chan4:false,
     colors:{m:'#d62839',o:'#fecc00'}, pitch:'green', half:'full', panLo:-4, size:'n',
-    phases:[], playing:false, linkStart:null, sel:null, textBg:false, namesInCircle:false
+    phases:[], playing:false, linkStart:null, sel:null, textBg:false, namesInCircle:false, customNum:{}
   };
 
   /* ---------- Hjälpfunktioner ---------- */
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
   function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+  function getDisplayNum(pid){
+    var v=state.customNum[pid];
+    if(v!=null&&v!=='') return v;
+    var p=state.players.filter(function(x){return x.id===pid;})[0];
+    return p?p.num:null;
+  }
+  function assignPlayerNum(pid,newNum,team){
+    var old=getDisplayNum(pid), conflict=null;
+    state.players.forEach(function(p){
+      if(p.id!==pid&&p.team===team&&String(getDisplayNum(p.id))===String(newNum)) conflict=p.id;
+    });
+    if(conflict) state.customNum[conflict]=old;
+    state.customNum[pid]=newNum;
+  }
   function rows(f){return f.split('-').map(Number)}
 
   function place(r,xMin,xMax){
@@ -447,7 +536,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     place(rows(state.myForm),myR[0],myR[1]).forEach(function(p){my.push(p)});
     place(rows(state.oppForm),opR[0],opR[1]).forEach(function(p){opp.push([L-p[0],W-p[1]])});
     var ball=sit?sit.ball:[52.5,34];
-    if(state.setPiece){
+    if(state.setPiece&&SETS[state.setPiece]){
       var s=SETS[state.setPiece]();
       ball=s.ball; applyOv(my,f.gk,s.my); applyOv(opp,f.gk,s.opp);
     }
@@ -611,18 +700,18 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     var oval=state.namesInCircle, rx=oval?OVAL_RX_BASE*k:pr, ry=pr, maxW=rx*2*0.86;
     state.players.slice().sort(function(a,b){ return (a.team==='m'?1:0)-(b.team==='m'?1:0); }).forEach(function(p){
       if(!visible(p)) return;
-      var lab=state.labels[p.id], center, below='', ringShape;
+      var lab=state.labels[p.id], dispNum=(state.customNum[p.id]!=null&&state.customNum[p.id]!=='')?state.customNum[p.id]:p.num, center, below='', ringShape;
       if(oval){
         if(lab){
           var fit=fitOvalText(lab,maxW);
           center='<text class="num" dy=".34em" style="font-size:'+fit.fs.toFixed(2)+'px">'+esc(fit.text)+'</text>';
         } else {
-          center='<text class="num" dy=".34em" style="font-size:'+(3*k).toFixed(2)+'px">'+p.num+'</text>';
+          center='<text class="num" dy=".34em" style="font-size:'+(3*k).toFixed(2)+'px">'+esc(String(dispNum))+'</text>';
         }
         var erx=por?ry:rx, ery=por?rx:ry;
         ringShape='<ellipse rx="'+(erx+0.1).toFixed(2)+'" ry="'+(ery+0.1).toFixed(2)+'" fill="transparent"/><ellipse class="ring" rx="'+erx.toFixed(2)+'" ry="'+ery.toFixed(2)+'"/>';
       } else {
-        center='<text class="num" dy=".34em" style="font-size:'+(3.3*k).toFixed(2)+'px">'+p.num+'</text>';
+        center='<text class="num" dy=".34em" style="font-size:'+(3.3*k).toFixed(2)+'px">'+esc(String(dispNum))+'</text>';
         if(lab) below='<text class="lab" y="'+(pr+3).toFixed(2)+'" style="font-size:'+Math.max(2.2,2.7*k).toFixed(2)+'px">'+esc(lab)+'</text>';
         ringShape='<circle r="2.8" fill="transparent"/><circle class="ring" r="'+pr.toFixed(2)+'"/>';
       }
@@ -682,7 +771,10 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     var hasBg=!!(opts&&opts.bg!==undefined);
     $('#popBgWrap').hidden=!hasBg;
     if(hasBg) $('#popBg').checked=!!opts.bg;
-    var left=clamp(cx-r.left,150,Math.max(150,r.width-150));
+    var hasNum=!!(opts&&opts.num!==undefined);
+    $('#popNumWrap').hidden=!hasNum;
+    if(hasNum) $('#popNum').value=(opts.num===''||opts.num==null)?'':opts.num;
+    var left=clamp(cx-r.left,125,Math.max(125,r.width-125));
     var top=clamp(cy-r.top,0,Math.max(0,r.height-60));
     pop.style.left=left+'px'; pop.style.top=top+'px';
     var inp=$('#popInput');
@@ -691,9 +783,9 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   }
   function hidePop(){ $('#pop').hidden=true; popCb=null; }
   function commitPop(){
-    var v=$('#popInput').value.trim(), bg=$('#popBg').checked, cb=popCb;
+    var v=$('#popInput').value.trim(), bg=$('#popBg').checked, numRaw=$('#popNum').value.trim(), cb=popCb;
     hidePop();
-    if(cb) cb(v,bg);
+    if(cb) cb(v,bg,numRaw);
   }
   $('#popOk').addEventListener('click',commitPop);
   $('#popInput').addEventListener('keydown',function(e){
@@ -805,10 +897,17 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       var d=drag; drag=null;
       if(!d.moved&&d.isText){ editText(d.obj,e.clientX,e.clientY); }
       if(!d.moved&&d.isPlayer){
-        openPop(e.clientX,e.clientY,state.labels[d.obj.id]||'','Namn på spelaren',function(v){
-          if(v) state.labels[d.obj.id]=v; else delete state.labels[d.obj.id];
+        var epid=d.obj.id, eteam=epid.charAt(0)==='m'?'m':'o';
+        openPop(e.clientX,e.clientY,state.labels[epid]||'','Namn på spelaren',function(v,bg,numRaw){
+          if(v) state.labels[epid]=v; else delete state.labels[epid];
+          if(numRaw!==''){
+            var nn=parseInt(numRaw,10);
+            if(isFinite(nn)) assignPlayerNum(epid,clamp(Math.round(nn),1,99),eteam);
+          } else {
+            delete state.customNum[epid];
+          }
           render();
-        });
+        },{num:getDisplayNum(epid)});
       }
     }
     if(draw){
@@ -870,7 +969,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   $('#resetModal').addEventListener('click',function(e){ if(e.target===$('#resetModal')) $('#resetModal').hidden=true; });
   $('#resetConfirm').addEventListener('click',function(){
     $('#resetModal').hidden=true;
-    state.labels={}; rebuild();
+    state.labels={}; state.customNum={}; rebuild();
   });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#resetModal').hidden) $('#resetModal').hidden=true; });
 
@@ -882,7 +981,14 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   $('#myForm').addEventListener('change',function(e){ state.myForm=e.target.value; rebuild(); });
   $('#oppForm').addEventListener('change',function(e){ state.oppForm=e.target.value; rebuild(); });
   $('#setPiece').addEventListener('change',function(e){
-    state.setPiece=e.target.value;
+    var v=e.target.value;
+    if(v.indexOf('custom:')===0){
+      var rec=customSets.filter(function(r){return r.id===v.slice(7);})[0];
+      if(rec) applyCustomSet(rec);
+      else { e.target.value=''; }
+      return;
+    }
+    state.setPiece=v;
     if(state.setPiece){ state.situation=''; $('#situation').value=''; }
     rebuild();
   });
@@ -961,6 +1067,123 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
         animArmed=id; renderAnims();
         clearTimeout(animTimer);
         animTimer=setTimeout(function(){ animArmed=null; renderAnims(); },3000);
+      }
+    }
+  });
+
+  /* ---------- Egna fasta situationer (Custom fast situation) ---------- */
+  var customSets=[], editingCsId=null, csArmed=null, csTimer=null;
+  function csMsg(t){ $('#csMsg').textContent=t; }
+  function cloneAnn(arr){
+    return arr.map(function(a){ var o={}; Object.keys(a).forEach(function(k){ if(k.charAt(0)!=='_') o[k]=a[k]; }); return o; });
+  }
+  function csSnapshot(){
+    var p={}; state.players.forEach(function(q){ p[q.id]=[q.x,q.y]; });
+    return {n:state.n,myForm:state.myForm,oppForm:state.oppForm,p:p,b:[state.ball.x,state.ball.y],ann:cloneAnn(state.ann)};
+  }
+  function syncSetPieceOptions(){
+    var sel=$('#setPiece'), cur=sel.value;
+    var base='<option value="">Välj…</option>'+
+      '<option value="corner_att">Hörna (anfall)</option>'+
+      '<option value="corner_def">Hörna (försvar)</option>'+
+      '<option value="fk_att">Frispark (anfall)</option>'+
+      '<option value="goalkick">Målspark</option>'+
+      '<option value="throw">Inkast</option>'+
+      '<option value="pen">Straff</option>';
+    var extra='';
+    if(customSets.length){
+      extra='<optgroup label="Egna">'+customSets.map(function(r){ return '<option value="custom:'+r.id+'">'+esc(r.name)+'</option>'; }).join('')+'</optgroup>';
+    }
+    sel.innerHTML=base+extra;
+    if(Array.prototype.some.call(sel.options,function(o){return o.value===cur;})) sel.value=cur;
+    else if(cur.indexOf('custom:')===0){ sel.value=''; state.setPiece=''; }
+  }
+  function applyCustomSet(rec){
+    if(state.playing) return;
+    var d=rec.data;
+    state.n=d.n; state.myForm=d.myForm; state.oppForm=d.oppForm;
+    state.setPiece='custom:'+rec.id; state.situation='';
+    $('#size').value=String(state.n); fillForms();
+    $('#situation').value='';
+    rebuild();
+    $('#setPiece').value=state.setPiece;
+    var ids={}; state.players.forEach(function(p){ ids[p.id]=1; });
+    var ph=sanitizePhases([{p:d.p,b:d.b}]);
+    if(ph.length){
+      state.players.forEach(function(p){ var v=ph[0].p[p.id]; if(v){ p.x=v[0]; p.y=v[1]; } });
+      state.ball.x=ph[0].b[0]; state.ball.y=ph[0].b[1];
+    }
+    state.ann=sanitizeAnn(d.ann,ids);
+    render(); updateUI();
+  }
+  function renderCustomSets(){
+    var g=$('#csList');
+    if(!customSets.length){
+      g.innerHTML='<p class="hint">Inga sparade situationer än. Ställ upp spelarna, lägg till ritningar och tryck på Spara fast situation.</p>';
+      return;
+    }
+    var h='';
+    customSets.forEach(function(r){
+      var d=r.data, sub=d.n+' mot '+d.n+', '+d.myForm+' — '+d.ann.length+' ritning(ar)';
+      h+='<article class="card'+(editingCsId===r.id?' sel':'')+'"><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
+         '<div class="row"><button type="button" class="btn primary" data-csedit="'+r.id+'">Redigera</button>'+
+         '<button type="button" class="btn" data-csdel="'+r.id+'">'+(csArmed===r.id?'Bekräfta':'Ta bort')+'</button></div></article>';
+    });
+    g.innerHTML=h;
+  }
+  function csExitEdit(){
+    editingCsId=null;
+    $('#csSave').textContent='Spara fast situation';
+    $('#csCancelEdit').hidden=true;
+    renderCustomSets();
+  }
+  $('#csSave').addEventListener('click',function(){
+    if(state.playing) return;
+    var name=$('#csName').value.trim();
+    if(!name){ csMsg('Ge situationen ett namn.'); return; }
+    name=name.slice(0,60);
+    if(editingCsId){
+      var rec=customSets.filter(function(r){return r.id===editingCsId;})[0];
+      if(rec){
+        rec.name=name; rec.ts=Date.now(); rec.data=csSnapshot();
+        csMsg('Uppdaterade "'+name+'".');
+      }
+      csExitEdit();
+    } else {
+      var nrec={id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,ts:Date.now(),data:csSnapshot()};
+      customSets.unshift(nrec);
+      renderCustomSets();
+      csMsg('Sparade "'+name+'". Den finns nu under Fast situation.');
+    }
+    syncSetPieceOptions();
+    $('#csName').value='';
+  });
+  $('#csCancelEdit').addEventListener('click',function(){ csExitEdit(); csMsg('Redigeringen avbröts.'); });
+  $('#csList').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    var id=b.dataset.csedit||b.dataset.csdel;
+    var rec=customSets.filter(function(r){return r.id===id;})[0];
+    if(!rec) return;
+    if(b.dataset.csedit){
+      applyCustomSet(rec);
+      editingCsId=rec.id;
+      $('#csName').value=rec.name;
+      $('#csSave').textContent='Uppdatera fast situation';
+      $('#csCancelEdit').hidden=false;
+      renderCustomSets();
+      csMsg('Redigerar "'+rec.name+'". Gör dina ändringar och tryck på Uppdatera fast situation.');
+    } else if(b.dataset.csdel){
+      if(csArmed===id){
+        clearTimeout(csTimer); csArmed=null;
+        customSets=customSets.filter(function(r){return r.id!==id;});
+        if(editingCsId===id) csExitEdit();
+        if(state.setPiece==='custom:'+id){ state.setPiece=''; $('#setPiece').value=''; }
+        renderCustomSets(); syncSetPieceOptions();
+        csMsg('Situationen togs bort.');
+      } else {
+        csArmed=id; renderCustomSets();
+        clearTimeout(csTimer);
+        csTimer=setTimeout(function(){ csArmed=null; renderCustomSets(); },3000);
       }
     }
   });
@@ -1279,6 +1502,115 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     }
   }
 
+  /* ---------- Truppen ---------- */
+  var squad=[], tpCollapsed=false;
+  var TP_ICON_LEFT='<path d="M15 5l-7 7 7 7"/>', TP_ICON_RIGHT='<path d="M9 5l7 7-7 7"/>';
+  var TP_ICON_UP='<path d="M5 15l7-7 7 7"/>', TP_ICON_DOWN='<path d="M5 9l7 7 7-7"/>';
+  var tpMobileMq=window.matchMedia('(max-width:760px)');
+  function updateTruppenIcon(){
+    var mobile=tpMobileMq.matches, icon;
+    if(mobile) icon=tpCollapsed?TP_ICON_DOWN:TP_ICON_UP;
+    else icon=tpCollapsed?TP_ICON_RIGHT:TP_ICON_LEFT;
+    $('#truppenIcon').innerHTML=icon;
+  }
+  function tpMsg(t){ $('#tpMsg').textContent=t; }
+  function renderSquad(){
+    var ul=$('#tpList');
+    if(!squad.length){ ul.innerHTML='<li class="hint" style="padding:2px 0">Inga spelare i truppen än.</li>'; return; }
+    var h='';
+    squad.forEach(function(r){
+      h+='<li class="tp-item" data-tpid="'+r.id+'">'+
+         '<span class="tp-num">'+esc(r.num===''?'–':String(r.num))+'</span>'+
+         '<span class="tp-name">'+esc(r.name)+'</span>'+
+         '<button type="button" class="tp-del" data-tpdel="'+r.id+'" aria-label="Ta bort '+esc(r.name)+' ur truppen" title="Ta bort ur truppen">✕</button></li>';
+    });
+    ul.innerHTML=h;
+  }
+  function tpAdd(){
+    var numRaw=$('#tpNum').value.trim(), name=$('#tpName').value.trim();
+    if(!name){ tpMsg('Skriv ett namn.'); $('#tpName').focus(); return; }
+    var num=''; if(numRaw!==''){ var nn=parseInt(numRaw,10); if(isFinite(nn)) num=clamp(nn,1,99); }
+    squad.push({id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),num:num,name:name.slice(0,40)});
+    renderSquad();
+    $('#tpNum').value=''; $('#tpName').value=''; $('#tpName').focus();
+    tpMsg('Dra en spelare härifrån till en bricka på planen för att sätta namn och nummer.');
+  }
+  $('#tpAdd').addEventListener('click',tpAdd);
+  $('#tpName').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); tpAdd(); } });
+  $('#tpNum').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); tpAdd(); } });
+  $('#tpList').addEventListener('click',function(e){
+    var b=e.target.closest('[data-tpdel]'); if(!b) return;
+    squad=squad.filter(function(r){return r.id!==b.dataset.tpdel;});
+    renderSquad();
+  });
+  $('#truppenToggle').addEventListener('click',function(){
+    tpCollapsed=!tpCollapsed;
+    $('#truppen').classList.toggle('collapsed',tpCollapsed);
+    this.setAttribute('aria-expanded',tpCollapsed?'false':'true');
+    var t=tpCollapsed?'Visa truppen':'Dölj truppen';
+    this.title=t; this.setAttribute('aria-label',t);
+    updateTruppenIcon();
+    setTimeout(layout,190);
+  });
+  tpMobileMq.addEventListener?tpMobileMq.addEventListener('change',updateTruppenIcon):tpMobileMq.addListener(updateTruppenIcon);
+  updateTruppenIcon();
+  $('#chkTruppen').addEventListener('change',function(e){
+    $('#truppen').hidden=!e.target.checked;
+    setTimeout(layout,190);
+  });
+
+  /* Dra en spelare från truppen till en bricka på planen */
+  (function(){
+    var list=$('#tpList'), dragRec=null, ghost=null;
+    function moveGhost(x,y){ if(ghost){ ghost.style.left=(x-ghost.offsetWidth/2)+'px'; ghost.style.top=(y-16)+'px'; } }
+    function clearHighlight(){ document.querySelectorAll('#dyn .pl.drop-target').forEach(function(g){ g.classList.remove('drop-target'); }); }
+    list.addEventListener('pointerdown',function(e){
+      if(e.target.closest('.tp-del')) return;
+      var item=e.target.closest('.tp-item'); if(!item) return;
+      var rec=squad.filter(function(r){return r.id===item.dataset.tpid;})[0]; if(!rec) return;
+      e.preventDefault();
+      dragRec=rec; item.classList.add('dragging');
+      var r=item.getBoundingClientRect();
+      ghost=item.cloneNode(true); ghost.classList.add('drag-ghost'); ghost.classList.remove('dragging');
+      ghost.style.width=r.width+'px';
+      document.body.appendChild(ghost);
+      moveGhost(e.clientX,e.clientY);
+      list.setPointerCapture(e.pointerId);
+    });
+    list.addEventListener('pointermove',function(e){
+      if(!dragRec) return;
+      moveGhost(e.clientX,e.clientY);
+      clearHighlight();
+      var el=document.elementFromPoint(e.clientX,e.clientY);
+      var pl=el&&el.closest?el.closest('#dyn .pl-m'):null;
+      if(pl) pl.classList.add('drop-target');
+    });
+    function finish(){
+      document.querySelectorAll('.tp-item.dragging').forEach(function(c){c.classList.remove('dragging');});
+      clearHighlight();
+      if(ghost){ ghost.remove(); ghost=null; }
+      dragRec=null;
+    }
+    list.addEventListener('pointerup',function(e){
+      if(!dragRec) return;
+      var rec=dragRec;
+      var el=document.elementFromPoint(e.clientX,e.clientY);
+      var pl=el&&el.closest?el.closest('#dyn .pl-m'):null;
+      var oppHit=!pl&&el&&el.closest&&el.closest('#dyn .pl-o');
+      finish();
+      if(pl&&pl.dataset.id){
+        state.labels[pl.dataset.id]=rec.name;
+        if(rec.num==='') delete state.customNum[pl.dataset.id];
+        else assignPlayerNum(pl.dataset.id,rec.num,'m');
+        render();
+        tpMsg('Satte "'+rec.name+'" på planen.');
+      } else if(oppHit){
+        tpMsg('Du kan bara sätta spelare från truppen på ditt eget lag (mitt lag).');
+      }
+    });
+    list.addEventListener('pointercancel',finish);
+  })();
+
   /* ---------- Sessioner ---------- */
   var sessions=[], sesArmed=null, sesTimer=null;
   function has(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
@@ -1296,6 +1628,21 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     });
     return out;
   }
+  function sanitizeAnn(arr,ids){
+    var out=[];
+    (Array.isArray(arr)?arr.slice(0,300):[]).forEach(function(a){
+      if(!a||typeof a!=='object') return;
+      if(a.t==='run'||a.t==='pass'){
+        out.push({t:a.t,x1:num(a.x1,-10,L+10,0),y1:num(a.y1,-10,W+10,0),x2:num(a.x2,-10,L+10,0),y2:num(a.y2,-10,W+10,0)});
+      } else if(a.t==='link'){
+        if(ids[a.a]&&ids[a.b]) out.push({t:'link',a:a.a,b:a.b});
+      } else if(a.t==='text'){
+        var t=String(a.s==null?'':a.s).slice(0,200); if(!t) return;
+        out.push({t:'text',x:num(a.x,-10,L+10,52.5),y:num(a.y,-10,W+10,34),w:num(a.w,6,140,20),h:num(a.h,3.6,80,6),s:t,bg:!!a.bg});
+      }
+    });
+    return out;
+  }
   function sesMsg(t){ $('#sesMsg').textContent=t; }
 
   function serialize(name){
@@ -1305,12 +1652,14 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       n:state.n, myForm:state.myForm, oppForm:state.oppForm, setPiece:state.setPiece, situation:state.situation,
       players:state.players.map(function(p){ return {id:p.id,x:+p.x.toFixed(2),y:+p.y.toFixed(2)}; }),
       ball:{x:+state.ball.x.toFixed(2),y:+state.ball.y.toFixed(2)},
-      ann:ann, labels:state.labels, colors:state.colors,
+      ann:ann, labels:state.labels, customNum:state.customNum, colors:state.colors,
       pitch:state.pitch, half:state.half, panLo:state.panLo, size:state.size, portrait:state.portrait,
       showOpp:state.showOpp, showBall:state.showBall, chan5:state.chan5, chan4:state.chan4, namesInCircle:state.namesInCircle,
       phases:state.phases,
       images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
-      animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; })
+      animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; }),
+      customSets:customSets.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
+      squad:squad.map(function(r){ return {num:r.num,name:r.name}; })
     };
   }
 
@@ -1351,17 +1700,15 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     if(d.labels&&typeof d.labels==='object'){
       Object.keys(d.labels).forEach(function(k){ if(ids[k]&&typeof d.labels[k]==='string') state.labels[k]=d.labels[k].slice(0,60); });
     }
-    (Array.isArray(d.ann)?d.ann.slice(0,300):[]).forEach(function(a){
-      if(!a||typeof a!=='object') return;
-      if(a.t==='run'||a.t==='pass'){
-        state.ann.push({t:a.t,x1:num(a.x1,-10,L+10,0),y1:num(a.y1,-10,W+10,0),x2:num(a.x2,-10,L+10,0),y2:num(a.y2,-10,W+10,0)});
-      } else if(a.t==='link'){
-        if(ids[a.a]&&ids[a.b]) state.ann.push({t:'link',a:a.a,b:a.b});
-      } else if(a.t==='text'){
-        var t=String(a.s==null?'':a.s).slice(0,200); if(!t) return;
-        state.ann.push({t:'text',x:num(a.x,-10,L+10,52.5),y:num(a.y,-10,W+10,34),w:num(a.w,6,140,20),h:num(a.h,3.6,80,6),s:t,bg:!!a.bg});
-      }
-    });
+    state.customNum={};
+    if(d.customNum&&typeof d.customNum==='object'){
+      Object.keys(d.customNum).forEach(function(k){
+        if(!ids[k]) return;
+        var v=d.customNum[k]; if(v===''||v==null) return;
+        var n=+v; if(isFinite(n)) state.customNum[k]=clamp(Math.round(n),1,99);
+      });
+    }
+    state.ann=sanitizeAnn(d.ann,ids);
     state.phases=sanitizePhases(d.phases);
 
     gallery=[];
@@ -1380,6 +1727,36 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       anims.push({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:String(a.name==null?'Animation':a.name).slice(0,60),ts:num(a.ts,0,8.64e15,Date.now()),phases:ph});
     });
     renderAnims();
+
+    customSets=[];
+    (Array.isArray(d.customSets)?d.customSets.slice(0,50):[]).forEach(function(c){
+      if(!c||typeof c!=='object'||!c.data||typeof c.data!=='object') return;
+      var dd=c.data, cn=+dd.n; if(!has(FORMS,cn)) return;
+      var clist=FORMS[cn].list;
+      customSets.push({
+        id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+        name:String(c.name==null?'Situation':c.name).slice(0,60),
+        ts:num(c.ts,0,8.64e15,Date.now()),
+        data:{
+          n:cn,
+          myForm:clist.indexOf(dd.myForm)>=0?dd.myForm:FORMS[cn].my,
+          oppForm:clist.indexOf(dd.oppForm)>=0?dd.oppForm:clist[0],
+          p:(dd.p&&typeof dd.p==='object')?dd.p:{},
+          b:Array.isArray(dd.b)?dd.b:[52.5,34],
+          ann:Array.isArray(dd.ann)?dd.ann.slice(0,300):[]
+        }
+      });
+    });
+    renderCustomSets();
+    syncSetPieceOptions();
+
+    squad=[];
+    (Array.isArray(d.squad)?d.squad.slice(0,60):[]).forEach(function(r){
+      if(!r||typeof r!=='object'||typeof r.name!=='string'||!r.name.trim()) return;
+      var n=''; if(r.num!==''&&r.num!=null){ var nn=+r.num; if(isFinite(nn)) n=clamp(Math.round(nn),1,99); }
+      squad.push({id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),num:n,name:r.name.slice(0,40)});
+    });
+    renderSquad();
 
     /* Synka kontrollerna */
     $('#size').value=String(state.n); fillForms();
@@ -1492,6 +1869,9 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   rebuild();
   initGallery();
   renderAnims();
+  renderCustomSets();
+  syncSetPieceOptions();
+  renderSquad();
   initSessions();
 
   /* ---------- Helskärm för planen ---------- */
