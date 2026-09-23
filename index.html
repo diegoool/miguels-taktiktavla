@@ -76,6 +76,10 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
 .tp-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;cursor:grab;touch-action:none}
 .tp-item:active{cursor:grabbing}
 .tp-item.dragging{opacity:.4}
+.tp-item.on-pitch{background:rgba(34,197,94,.22);border-color:#22c55e}
+.tp-item.status-ers{background:rgba(234,179,8,.24);border-color:#eab308}
+.tp-item.status-ej{background:rgba(239,68,68,.2);border-color:#ef4444}
+.tp-status{font-size:11px;color:var(--muted)}
 .tp-num{min-width:24px;height:24px;padding:0 3px;border-radius:6px;background:var(--accent);color:var(--accent-ink);font:700 12px 'Barlow',sans-serif;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .tp-name{flex:1 1 auto;overflow-wrap:anywhere;font-weight:600;font-size:14px;min-width:0}
 .tp-del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:3px 7px;border-radius:6px;flex:0 0 auto}
@@ -321,7 +325,8 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
           <input class="txt" type="text" id="tpName" maxlength="40" placeholder="Namn" aria-label="Spelarens namn">
         </div>
         <button type="button" class="btn primary" id="tpAdd">Lägg till spelare</button>
-        <p class="hint" id="tpMsg" role="status" style="margin:0">Dra en spelare härifrån till en bricka på planen för att sätta namn och nummer.</p>
+        <button type="button" class="btn" id="tpStartImg">Bild startelva</button>
+        <p class="hint" id="tpMsg" role="status" style="margin:0">Dra en spelare härifrån till en bricka på planen för att sätta namn och nummer. Tryck (utan att dra) på en spelare som inte är på planen för att markera Ersättare eller Ej uttagen.</p>
         <ul class="tp-list" id="tpList"></ul>
       </div>
     </aside>
@@ -906,7 +911,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
           } else {
             delete state.customNum[epid];
           }
-          render();
+          render(); renderSquad();
         },{num:getDisplayNum(epid)});
       }
     }
@@ -969,7 +974,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   $('#resetModal').addEventListener('click',function(e){ if(e.target===$('#resetModal')) $('#resetModal').hidden=true; });
   $('#resetConfirm').addEventListener('click',function(){
     $('#resetModal').hidden=true;
-    state.labels={}; state.customNum={}; rebuild();
+    state.labels={}; state.customNum={}; rebuild(); renderSquad();
   });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#resetModal').hidden) $('#resetModal').hidden=true; });
 
@@ -1114,7 +1119,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       state.ball.x=ph[0].b[0]; state.ball.y=ph[0].b[1];
     }
     state.ann=sanitizeAnn(d.ann,ids);
-    render(); updateUI();
+    render(); updateUI(); renderSquad();
   }
   function renderCustomSets(){
     var g=$('#csList');
@@ -1416,7 +1421,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     });
   }
 
-  function openShot(isNew,rec){
+  function openShot(isNew,rec,nameOverride){
     viewing=isNew?null:rec;
     $('#shotTitle').textContent=isNew?'Ny skärmbild':rec.name;
     $('#shotNameWrap').hidden=!isNew;
@@ -1427,7 +1432,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     shotMsg('');
     $('#shot').hidden=false;
     setTimeout(function(){
-      if(isNew){ var n=$('#shotName'); n.value=defaultName(); n.focus(); n.select(); }
+      if(isNew){ var n=$('#shotName'); n.value=nameOverride||defaultName(); n.focus(); n.select(); }
       else $('#shotCancel').focus();
     },30);
   }
@@ -1441,6 +1446,55 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       .catch(function(){ galMsg('Det gick inte att skapa skärmbilden i den här webbläsaren.'); });
   }
   document.querySelectorAll('.js-shot').forEach(function(b){ b.addEventListener('click',startShot); });
+
+  function makeStartelvaShot(){
+    return makeShot().then(function(pitchUrl){
+      return new Promise(function(resolve,reject){
+        var img=new Image();
+        img.onload=function(){
+          try{
+            var ers=squad.filter(function(r){return r.status==='ers';});
+            var listW=280, pad=22, lineH=32, headerH=40;
+            var neededH=headerH+pad*2+Math.max(1,ers.length)*lineH;
+            var cv=document.createElement('canvas');
+            cv.width=img.width+listW;
+            cv.height=Math.max(img.height,neededH);
+            var ctx=cv.getContext('2d');
+            ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,cv.width,cv.height);
+            ctx.drawImage(img,0,0);
+            var x=img.width+pad, y=pad+28;
+            ctx.textBaseline='alphabetic';
+            ctx.fillStyle='#111111';
+            ctx.font='700 26px Arial, Helvetica, sans-serif';
+            ctx.fillText('Ersättare',x,y);
+            y+=lineH;
+            ctx.font='600 20px Arial, Helvetica, sans-serif';
+            if(!ers.length){
+              ctx.fillStyle='#777777';
+              ctx.fillText('Inga ersättare valda.',x,y);
+            } else {
+              ers.forEach(function(r){
+                ctx.fillStyle='#111111';
+                var label='- '+(r.num!==''?r.num+'. ':'')+r.name;
+                ctx.fillText(label,x,y);
+                y+=lineH;
+              });
+            }
+            resolve(cv.toDataURL('image/png'));
+          }catch(err){ reject(err); }
+        };
+        img.onerror=reject;
+        img.src=pitchUrl;
+      });
+    });
+  }
+  $('#tpStartImg').addEventListener('click',function(){
+    if(state.playing) return;
+    hidePop();
+    state.sel=null; render();
+    makeStartelvaShot().then(function(d){ pendingShot=d; openShot(true,null,'Startelva'); })
+      .catch(function(){ tpMsg('Det gick inte att skapa bilden i den här webbläsaren.'); });
+  });
 
   $('#shotSave').addEventListener('click',function(){
     if(!pendingShot) return;
@@ -1514,14 +1568,23 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     $('#truppenIcon').innerHTML=icon;
   }
   function tpMsg(t){ $('#tpMsg').textContent=t; }
+  function squadOnPitch(rec){
+    if(rec.num==='') return false;
+    return state.players.some(function(p){
+      return p.team==='m'&&state.labels[p.id]===rec.name&&String(getDisplayNum(p.id))===String(rec.num);
+    });
+  }
   function renderSquad(){
     var ul=$('#tpList');
     if(!squad.length){ ul.innerHTML='<li class="hint" style="padding:2px 0">Inga spelare i truppen än.</li>'; return; }
     var h='';
     squad.forEach(function(r){
-      h+='<li class="tp-item" data-tpid="'+r.id+'">'+
+      var onPitch=squadOnPitch(r);
+      var cls='tp-item'+(onPitch?' on-pitch':(r.status==='ers'?' status-ers':(r.status==='ej'?' status-ej':'')));
+      var statusTxt=onPitch?'':(r.status==='ers'?'Ersättare':(r.status==='ej'?'Ej uttagen':''));
+      h+='<li class="'+cls+'" data-tpid="'+r.id+'">'+
          '<span class="tp-num">'+esc(r.num===''?'–':String(r.num))+'</span>'+
-         '<span class="tp-name">'+esc(r.name)+'</span>'+
+         '<span class="tp-name">'+esc(r.name)+(statusTxt?' <span class="tp-status">— '+esc(statusTxt)+'</span>':'')+'</span>'+
          '<button type="button" class="tp-del" data-tpdel="'+r.id+'" aria-label="Ta bort '+esc(r.name)+' ur truppen" title="Ta bort ur truppen">✕</button></li>';
     });
     ul.innerHTML=h;
@@ -1561,7 +1624,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 
   /* Dra en spelare från truppen till en bricka på planen */
   (function(){
-    var list=$('#tpList'), dragRec=null, ghost=null;
+    var list=$('#tpList'), dragRec=null, ghost=null, moved=false, sx=0, sy=0;
     function moveGhost(x,y){ if(ghost){ ghost.style.left=(x-ghost.offsetWidth/2)+'px'; ghost.style.top=(y-16)+'px'; } }
     function clearHighlight(){ document.querySelectorAll('#dyn .pl.drop-target').forEach(function(g){ g.classList.remove('drop-target'); }); }
     list.addEventListener('pointerdown',function(e){
@@ -1569,16 +1632,23 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       var item=e.target.closest('.tp-item'); if(!item) return;
       var rec=squad.filter(function(r){return r.id===item.dataset.tpid;})[0]; if(!rec) return;
       e.preventDefault();
-      dragRec=rec; item.classList.add('dragging');
-      var r=item.getBoundingClientRect();
-      ghost=item.cloneNode(true); ghost.classList.add('drag-ghost'); ghost.classList.remove('dragging');
-      ghost.style.width=r.width+'px';
-      document.body.appendChild(ghost);
-      moveGhost(e.clientX,e.clientY);
+      dragRec=rec; moved=false; sx=e.clientX; sy=e.clientY;
       list.setPointerCapture(e.pointerId);
     });
     list.addEventListener('pointermove',function(e){
       if(!dragRec) return;
+      if(!moved&&Math.hypot(e.clientX-sx,e.clientY-sy)>4){
+        moved=true;
+        var item=list.querySelector('[data-tpid="'+dragRec.id+'"]');
+        if(item){
+          item.classList.add('dragging');
+          var r=item.getBoundingClientRect();
+          ghost=item.cloneNode(true); ghost.classList.add('drag-ghost'); ghost.classList.remove('dragging');
+          ghost.style.width=r.width+'px';
+          document.body.appendChild(ghost);
+        }
+      }
+      if(!moved) return;
       moveGhost(e.clientX,e.clientY);
       clearHighlight();
       var el=document.elementFromPoint(e.clientX,e.clientY);
@@ -1593,16 +1663,24 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     }
     list.addEventListener('pointerup',function(e){
       if(!dragRec) return;
-      var rec=dragRec;
+      var rec=dragRec, wasMoved=moved;
       var el=document.elementFromPoint(e.clientX,e.clientY);
-      var pl=el&&el.closest?el.closest('#dyn .pl-m'):null;
-      var oppHit=!pl&&el&&el.closest&&el.closest('#dyn .pl-o');
+      var pl=wasMoved&&el&&el.closest?el.closest('#dyn .pl-m'):null;
+      var oppHit=wasMoved&&!pl&&el&&el.closest&&el.closest('#dyn .pl-o');
       finish();
+      if(!wasMoved){
+        if(!squadOnPitch(rec)){
+          rec.status=rec.status==null?'ers':(rec.status==='ers'?'ej':null);
+          renderSquad();
+        }
+        return;
+      }
       if(pl&&pl.dataset.id){
         state.labels[pl.dataset.id]=rec.name;
         if(rec.num==='') delete state.customNum[pl.dataset.id];
         else assignPlayerNum(pl.dataset.id,rec.num,'m');
-        render();
+        rec.status=null;
+        render(); renderSquad();
         tpMsg('Satte "'+rec.name+'" på planen.');
       } else if(oppHit){
         tpMsg('Du kan bara sätta spelare från truppen på ditt eget lag (mitt lag).');
@@ -1659,7 +1737,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
       animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; }),
       customSets:customSets.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
-      squad:squad.map(function(r){ return {num:r.num,name:r.name}; })
+      squad:squad.map(function(r){ return {num:r.num,name:r.name,status:r.status||null}; })
     };
   }
 
@@ -1754,7 +1832,8 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     (Array.isArray(d.squad)?d.squad.slice(0,60):[]).forEach(function(r){
       if(!r||typeof r!=='object'||typeof r.name!=='string'||!r.name.trim()) return;
       var n=''; if(r.num!==''&&r.num!=null){ var nn=+r.num; if(isFinite(nn)) n=clamp(Math.round(nn),1,99); }
-      squad.push({id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),num:n,name:r.name.slice(0,40)});
+      var st=(r.status==='ers'||r.status==='ej')?r.status:null;
+      squad.push({id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),num:n,name:r.name.slice(0,40),status:st});
     });
     renderSquad();
 
