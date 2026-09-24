@@ -1,0 +1,10 @@
+.print-only{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;top:0;left:0;width:100%;margin:0}
+  #printArea .print-page{page-break-after:always;padding:24px;text-align:center}
+  #printArea .print-page:last-child{page-break-after:auto}
+  #printArea h2{font:700 22px/1.2 'Barlow Condensed','Arial Narrow',sans-serif;margin:0 0 16px;color:#000}
+  #printArea img{max-width:100%;max-height:85vh;object-fit:contain}
+}
