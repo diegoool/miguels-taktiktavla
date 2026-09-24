@@ -31,8 +31,9 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
-.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
+.wrap{position:relative;max-width:1040px;margin:0 auto;padding:20px 16px 40px}
 h1{font:700 clamp(32px,6vw,46px)/1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0 0 6px;letter-spacing:.01em}
+#pageLogo{position:absolute;top:20px;right:16px;z-index:5;max-height:84px;max-width:200px;object-fit:contain;border-radius:6px}
 .lede{margin:0 0 18px;color:var(--muted)}
 .controls,.look{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);font-weight:500}
@@ -88,6 +89,7 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
 .drag-ghost.tp-item{position:fixed;z-index:80;pointer-events:none;opacity:.92;box-shadow:0 14px 32px rgba(0,0,0,.45);transform:rotate(-1deg)}
 #svg .pl.drop-target .ring{stroke:var(--accent);stroke-width:1.1}
 @media (max-width:760px){
+  #pageLogo{position:static;display:block;margin:0 auto 10px;max-height:72px}
   .board-row{flex-direction:column}
   .truppen{margin-left:0}
   .board-row .truppen{order:-1}
@@ -180,6 +182,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 </head>
 <body>
 <main class="wrap">
+  <img id="pageLogo" alt="Logotyp" hidden>
   <h1>Miguels Taktiktavla</h1>
   <p class="lede">Miguels taktiktavla är ett privat verktyg för att planera och bygga formationer, rita löpningar och animera spelet.</p>
 
@@ -369,6 +372,21 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   <section class="anim" aria-label="Sessioner">
     <h2>Sessioner</h2>
     <p>Spara hela tavlan med formation, spelare, ritningar, färger, faser och skärmbilder, och ladda den senare eller i en ny session. Exportera som fil för att flytta den till en annan enhet.</p>
+    <div class="row" style="margin-bottom:6px">
+      <input type="file" id="logoFile" accept="image/png" hidden>
+      <button type="button" class="btn" id="logoBtn">Ladda upp logotyp (PNG)</button>
+      <button type="button" class="btn" id="logoRemove" hidden>Ta bort logotyp</button>
+    </div>
+    <p class="hint" id="logoMsg" role="status" style="margin:0 0 10px">Logotypen visas uppe till höger på sidan och sparas med sessionen.</p>
+    <label class="chk" style="margin-bottom:8px"><input type="checkbox" id="sesForstasida"> Skapa förstasida</label>
+    <div class="row" id="fsFields" hidden style="margin-bottom:10px">
+      <label class="chk"><input type="radio" name="fsSide" value="hemma" checked> Hemma</label>
+      <label class="chk"><input type="radio" name="fsSide" value="borta"> Borta</label>
+      <input class="txt" type="text" id="fsMotstand" maxlength="40" placeholder="Motstånd" aria-label="Motstånd" style="flex:1 1 160px;max-width:220px">
+      <input class="txt" type="text" id="fsDatum" maxlength="30" placeholder="Datum" aria-label="Datum" style="flex:1 1 140px;max-width:180px">
+      <input class="txt" type="text" id="fsSamling" maxlength="30" placeholder="Samling" aria-label="Samling" style="flex:1 1 140px;max-width:180px">
+      <input class="txt" type="text" id="fsMatchstart" maxlength="30" placeholder="Matchstart" aria-label="Matchstart" style="flex:1 1 140px;max-width:180px">
+    </div>
     <div class="row">
       <input class="txt" type="text" id="sesName" maxlength="60" placeholder="Namn på sessionen" aria-label="Namn på sessionen" style="flex:1 1 220px;max-width:320px">
       <button type="button" class="btn primary" id="sesSave">Spara session</button>
@@ -1257,6 +1275,34 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   var gallery=[], pendingShot=null, viewing=null, dlCap=null, armedId=null, armedTimer=null;
   var EXPORT_PROPS=['fill','fill-opacity','stroke','stroke-width','stroke-opacity','stroke-dasharray','stroke-linecap','stroke-linejoin','paint-order','opacity','font-size','font-weight','text-anchor'];
 
+  /* ---------- Logotyp ---------- */
+  var logoData=null;
+  function logoMsg(t){ $('#logoMsg').textContent=t; }
+  function updateLogoDisplay(){
+    var img=$('#pageLogo');
+    if(logoData){ img.src=logoData; img.hidden=false; }
+    else { img.hidden=true; img.removeAttribute('src'); }
+    $('#logoRemove').hidden=!logoData;
+  }
+  $('#logoBtn').addEventListener('click',function(){ $('#logoFile').click(); });
+  $('#logoFile').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0]; e.target.value='';
+    if(!f) return;
+    if(f.type!=='image/png'){ logoMsg('Bara PNG-bilder stöds.'); return; }
+    if(f.size>2000000){ logoMsg('Bilden är för stor (max 2 MB).'); return; }
+    var fr=new FileReader();
+    fr.onload=function(){
+      logoData=fr.result; updateLogoDisplay();
+      logoMsg('Logotypen visas uppe till höger på sidan.');
+    };
+    fr.onerror=function(){ logoMsg('Kunde inte läsa bilden.'); };
+    fr.readAsDataURL(f);
+  });
+  $('#logoRemove').addEventListener('click',function(){
+    logoData=null; updateLogoDisplay();
+    logoMsg('Logotypen togs bort.');
+  });
+
   function makeShot(){
     return new Promise(function(resolve,reject){
       try{
@@ -1740,7 +1786,8 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
       images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
       animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; }),
       customSets:customSets.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
-      squad:squad.map(function(r){ return {num:r.num,name:r.name,status:r.status||null}; })
+      squad:squad.map(function(r){ return {num:r.num,name:r.name,status:r.status||null}; }),
+      logo:logoData||null
     };
   }
 
@@ -1840,6 +1887,9 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     });
     renderSquad();
 
+    logoData=(typeof d.logo==='string'&&d.logo.length<3000000&&d.logo.indexOf('data:image/png')===0)?d.logo:null;
+    updateLogoDisplay();
+
     /* Synka kontrollerna */
     $('#size').value=String(state.n); fillForms();
     $('#setPiece').value=state.setPiece; $('#situation').value=state.situation;
@@ -1874,11 +1924,127 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   }
   function sesDefaultName(){ return state.myForm+' mot '+state.oppForm; }
 
+  $('#sesForstasida').addEventListener('change',function(e){ $('#fsFields').hidden=!e.target.checked; });
+
+  function drawWrappedCenter(ctx,text,cx,y,maxW,lineH){
+    var words=String(text).split(/\s+/).filter(Boolean), line='', lines=[];
+    for(var i=0;i<words.length;i++){
+      var t=line?line+' '+words[i]:words[i];
+      if(ctx.measureText(t).width>maxW&&line){ lines.push(line); line=words[i]; } else line=t;
+    }
+    if(line) lines.push(line);
+    lines.forEach(function(ln){ ctx.fillText(ln,cx,y); y+=lineH; });
+    return y;
+  }
+
+  function makeForstasida(info){
+    return new Promise(function(resolve){
+      var W=1100, cx=W/2;
+      var mctx=document.createElement('canvas').getContext('2d');
+      mctx.font='800 58px Arial, Helvetica, sans-serif';
+      function wrapCount(text,maxW){
+        var words=String(text).split(/\s+/).filter(Boolean), line='', n=0;
+        words.forEach(function(w){
+          var t=line?line+' '+w:w;
+          if(mctx.measureText(t).width>maxW&&line){ n++; line=w; } else line=t;
+        });
+        if(line) n++;
+        return Math.max(1,n);
+      }
+      var startArrH=squad.filter(squadOnPitch);
+      var ersArrH=squad.filter(function(r){return r.status==='ers';});
+      var halfH=Math.ceil(startArrH.length/2);
+      var maxRowsH=Math.max(halfH,startArrH.length-halfH,ersArrH.length);
+      var motstandLines=wrapCount((info.motstand||'Motstånd').toUpperCase(),W-140);
+      var infoLines=[info.datum,info.samling,info.matchstart].filter(Boolean).length;
+      var y0=logoData?190:70;
+      y0+=54+motstandLines*62+34+infoLines*42+36;
+      if(startArrH.length||ersArrH.length){ y0+=maxRowsH*40; }
+      var H=Math.max(500,Math.round(y0+50));
+      var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+      var ctx=cv.getContext('2d');
+      var accent=(state.colors&&state.colors.m)||'#0a6fb0';
+      var grad=ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0,'#ffffff'); grad.addColorStop(1,'#eef1f5');
+      ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle=accent; ctx.fillRect(0,0,W,16);
+      ctx.textAlign='center';
+
+      function drawRest(y){
+        ctx.fillStyle='#8a93a0'; ctx.font='700 30px Arial, Helvetica, sans-serif';
+        ctx.fillText(info.side==='borta'?'BORTA':'HEMMA',cx,y); y+=54;
+        ctx.fillStyle='#12181f'; ctx.font='800 58px Arial, Helvetica, sans-serif';
+        y=drawWrappedCenter(ctx,(info.motstand||'Motstånd').toUpperCase(),cx,y,W-140,62); y+=34;
+
+        ctx.font='600 27px Arial, Helvetica, sans-serif'; ctx.fillStyle='#3a4048';
+        [['Datum',info.datum],['Samling',info.samling],['Matchstart',info.matchstart]].forEach(function(pair){
+          if(pair[1]){ ctx.fillText(pair[0]+': '+pair[1],cx,y); y+=42; }
+        });
+        y+=36;
+
+        var startArr=squad.filter(squadOnPitch).sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
+        var ersArr=squad.filter(function(r){return r.status==='ers';}).sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
+        if(startArr.length||ersArr.length){
+          var half=Math.ceil(startArr.length/2);
+          var cols=[startArr.slice(0,half),startArr.slice(half),ersArr];
+          var blockW=Math.min(780,W-160), startX=(W-blockW)/2, colW=blockW/3;
+          var colX=[startX,startX+colW,startX+2*colW];
+          var listY=y;
+          ctx.textAlign='left'; ctx.font='500 26px Arial, Helvetica, sans-serif'; ctx.fillStyle='#1b232c';
+          var lineH=40;
+          cols.forEach(function(col,ci){
+            col.forEach(function(r,i){
+              var label=(r.num!==''?r.num+'. ':'')+r.name;
+              ctx.fillText(label,colX[ci],listY+i*lineH);
+            });
+          });
+          y=listY+Math.max(cols[0].length,cols[1].length,cols[2].length)*lineH;
+        }
+        resolve(cv.toDataURL('image/png'));
+      }
+
+      if(logoData){
+        var lg=new Image();
+        lg.onload=function(){
+          try{
+            var boxTop=36, maxW=260, maxH=130;
+            var sc=Math.min(maxW/lg.width,maxH/lg.height,1);
+            var lw=lg.width*sc, lh=lg.height*sc;
+            ctx.drawImage(lg,cx-lw/2,boxTop+(maxH-lh)/2,lw,lh);
+          }catch(e){}
+          drawRest(190);
+        };
+        lg.onerror=function(){ drawRest(70); };
+        lg.src=logoData;
+      } else {
+        drawRest(70);
+      }
+    });
+  }
+
+  function maybeCreateForstasida(){
+    if(!$('#sesForstasida').checked) return Promise.resolve();
+    var info={
+      side:(document.querySelector('input[name="fsSide"]:checked')||{}).value||'hemma',
+      motstand:$('#fsMotstand').value.trim(),
+      datum:$('#fsDatum').value.trim(),
+      samling:$('#fsSamling').value.trim(),
+      matchstart:$('#fsMatchstart').value.trim()
+    };
+    return makeForstasida(info).then(function(dataUrl){
+      var rec={id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:Date.now(),data:dataUrl};
+      gallery.unshift(rec);
+      renderGallery();
+    }).catch(function(){ sesMsg('Kunde inte skapa förstasidan, men sessionen sparas ändå.'); });
+  }
+
   $('#sesSave').addEventListener('click',function(){
     if(state.playing) return;
     var name=$('#sesName').value.trim()||sesDefaultName();
-    saveSessionRecord(name,serialize(name)).then(function(ok){
-      sesMsg(ok?'Sparade sessionen "'+name+'".':'Sessionen finns i listan men kunde inte sparas i webbläsaren. Exportera den som fil för att behålla den.');
+    maybeCreateForstasida().then(function(){
+      saveSessionRecord(name,serialize(name)).then(function(ok){
+        sesMsg(ok?'Sparade sessionen "'+name+'".':'Sessionen finns i listan men kunde inte sparas i webbläsaren. Exportera den som fil för att behålla den.');
+      });
     });
     $('#sesName').value='';
   });
@@ -1955,6 +2121,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   syncSetPieceOptions();
   renderSquad();
   initSessions();
+  updateLogoDisplay();
 
   /* ---------- Helskärm för planen ---------- */
   (function(){
