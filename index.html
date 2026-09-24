@@ -57,7 +57,7 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
 .board-row{display:flex;gap:14px;align-items:flex-start}
 .board{position:relative;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 14px 30px -20px rgba(0,0,0,.6)}
 .board-row .board{margin:0;min-width:0;flex:1 1 auto}
-.truppen{flex:0 0 240px;width:240px;margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;max-height:min(760px,86vh);overflow:hidden;display:flex;flex-direction:column;transition:flex-basis .18s ease,width .18s ease,padding .18s ease,margin .18s ease}
+.truppen{flex:0 0 240px;width:240px;margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;max-height:min(820px,94vh);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;transition:flex-basis .18s ease,width .18s ease,padding .18s ease,margin .18s ease}
 .truppen.collapsed{flex:0 0 40px;width:40px;padding:12px 4px}
 .truppen-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex:0 0 auto}
 .truppen h2{font:700 19px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0;white-space:nowrap;letter-spacing:.02em}
@@ -69,10 +69,11 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
 .tbtn:hover{background:var(--bg)}
 .tbtn svg{width:18px;height:18px}
 .tp-body{display:flex;flex-direction:column;gap:10px;min-height:0}
+.tp-body>*{flex:0 0 auto}
 .tp-add{display:flex;gap:6px}
 .tp-add input[type=number]{width:56px;flex:0 0 56px}
 .tp-add input[type=text]{flex:1 1 auto;min-width:0}
-.tp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0}
+.tp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .tp-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;cursor:grab;touch-action:none}
 .tp-item:active{cursor:grabbing}
 .tp-item.dragging{opacity:.4}
@@ -92,7 +93,7 @@ select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid va
   .board-row .truppen{order:-1}
   .board-row .board{max-width:100% !important;width:100%}
   .truppen{width:100%;flex-basis:auto;max-height:300px}
-  .truppen.collapsed{width:100%;flex-basis:auto;max-height:48px;padding:10px 12px;align-items:stretch}
+  .truppen.collapsed{width:100%;flex-basis:auto;max-height:none;overflow:visible;padding:10px 12px;align-items:stretch}
   .truppen.collapsed .truppen-head{flex-direction:row;justify-content:flex-start;gap:8px;margin-bottom:0}
   .truppen.collapsed h2{writing-mode:horizontal-tb;text-orientation:mixed;letter-spacing:.02em}
 }
@@ -105,6 +106,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 .shot-card h2{font:700 24px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0}
 .shot-card img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block}
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:8px}
+.gal>.hint{grid-column:1/-1}
 .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
 .thumb{border:0;padding:0;background:none;cursor:pointer;border-radius:8px;display:block}
 .thumb img{width:100%;height:auto;display:block;border-radius:8px;border:1px solid var(--line)}
@@ -327,7 +329,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
         </div>
         <button type="button" class="btn primary" id="tpAdd">Lägg till spelare</button>
         <button type="button" class="btn" id="tpStartImg">Bild startelva</button>
-        <p class="hint" id="tpMsg" role="status" style="margin:0">Dra en spelare härifrån till en bricka på planen för att sätta namn och nummer. Tryck (utan att dra) på en spelare som inte är på planen för att markera Ersättare eller Ej uttagen.</p>
+        <p class="hint" id="tpMsg" role="status" style="margin:0">Dra till planen för namn/nummer. Klicka för Ersättare/Ej uttagen.</p>
         <ul class="tp-list" id="tpList"></ul>
       </div>
     </aside>
@@ -352,8 +354,8 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     <p class="hint" id="animMsg" role="status"></p>
   </section>
 
-  <section class="anim" aria-label="Custom fast situation">
-    <h2>Custom fast situation</h2>
+  <section class="anim" aria-label="Anpassad fast situation">
+    <h2>Anpassad fast situation</h2>
     <p>Ställ upp spelarna och lägg till pilar, länkar eller text för din egna fasta situation. Spara den för att lägga till den som ett val under "Fast situation" ovan.</p>
     <div class="row">
       <input class="txt" type="text" id="csName" maxlength="60" placeholder="Namn på situationen" aria-label="Namn på situationen" style="flex:1 1 220px;max-width:320px">
@@ -661,18 +663,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     if(por){ vx=0; vy=L+M-hi; vw=W+2*M; vh=hi-lo; }
     else { vx=M+lo; vy=0; vw=hi-lo; vh=W+2*M; }
     svg.setAttribute('viewBox',vx+' '+vy+' '+vw+' '+vh);
-    var heightCap=clamp(window.innerHeight*0.8*vw/vh,280,1040);
-    var rowEl=document.querySelector('.board-row'), tEl=$('#truppen');
-    var widthCap=heightCap;
-    if(rowEl){
-      var rowAvail=rowEl.getBoundingClientRect().width;
-      var stacked=getComputedStyle(rowEl).flexDirection==='column';
-      if(!stacked&&rowAvail>0){
-        var truppenTakes=(tEl&&!tEl.hidden)?(tEl.getBoundingClientRect().width+14):0;
-        widthCap=Math.max(280,rowAvail-truppenTakes);
-      }
-    }
-    board.style.maxWidth=Math.round(Math.min(heightCap,widthCap))+'px';
+    board.style.maxWidth='100%';
   }
 
   function render(){
@@ -1088,7 +1079,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     }
   });
 
-  /* ---------- Egna fasta situationer (Custom fast situation) ---------- */
+  /* ---------- Egna fasta situationer (Anpassad fast situation) ---------- */
   var customSets=[], editingCsId=null, csArmed=null, csTimer=null;
   function csMsg(t){ $('#csMsg').textContent=t; }
   function cloneAnn(arr){
@@ -1576,7 +1567,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
   function updateTruppenIcon(){
     var mobile=tpMobileMq.matches, icon;
     if(mobile) icon=tpCollapsed?TP_ICON_DOWN:TP_ICON_UP;
-    else icon=tpCollapsed?TP_ICON_RIGHT:TP_ICON_LEFT;
+    else icon=tpCollapsed?TP_ICON_LEFT:TP_ICON_RIGHT;
     $('#truppenIcon').innerHTML=icon;
   }
   function tpMsg(t){ $('#tpMsg').textContent=t; }
