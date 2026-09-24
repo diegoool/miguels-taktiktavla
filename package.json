@@ -1,0 +1,11 @@
+{
+  "name": "miguels-taktiktavla",
+  "private": true,
+  "description": "Taktiktavla för fotboll",
+  "scripts": {
+    "test": "node tests/regression.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}

@@ -1,0 +1,4 @@
+.shot{position:fixed;inset:0;z-index:20;background:rgba(6,14,20,.7);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));overflow:auto}
+.shot-card{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(700px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.shot-card h2{font:700 24px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;margin:0}
+.shot-card img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block}
