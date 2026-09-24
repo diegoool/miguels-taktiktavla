@@ -211,15 +211,14 @@ function makeForstasida(info){
       if(line) n++;
       return Math.max(1,n);
     }
-    var startArrH=squad.filter(squadOnPitch);
-    var ersArrH=squad.filter(function(r){return r.status==='ers';});
-    var halfH=Math.ceil(startArrH.length/2);
-    var maxRowsH=Math.max(halfH,startArrH.length-halfH,ersArrH.length);
+    var listArr=squad.filter(function(r){ return squadOnPitch(r)||r.status==='ers'; })
+      .sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
+    var listRows=Math.ceil(listArr.length/3);
     var motstandLines=wrapCount((info.motstand||'Motstånd').toUpperCase(),W-140);
     var infoLines=[info.datum,info.samling,info.matchstart].filter(Boolean).length;
     var y0=logoData?190:70;
     y0+=54+motstandLines*62+34+infoLines*42+36;
-    if(startArrH.length||ersArrH.length){ y0+=maxRowsH*40; }
+    y0+=listRows*40;
     var H=Math.max(500,Math.round(y0+50));
     var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
     var ctx=cv.getContext('2d');
@@ -242,11 +241,8 @@ function makeForstasida(info){
       });
       y+=36;
 
-      var startArr=squad.filter(squadOnPitch).sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
-      var ersArr=squad.filter(function(r){return r.status==='ers';}).sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
-      if(startArr.length||ersArr.length){
-        var half=Math.ceil(startArr.length/2);
-        var cols=[startArr.slice(0,half),startArr.slice(half),ersArr];
+      if(listArr.length){
+        var cols=[listArr.slice(0,listRows),listArr.slice(listRows,2*listRows),listArr.slice(2*listRows)];
         var blockW=Math.min(780,W-160), startX=(W-blockW)/2, colW=blockW/3;
         var colX=[startX,startX+colW,startX+2*colW];
         var listY=y;
@@ -258,7 +254,7 @@ function makeForstasida(info){
             ctx.fillText(label,colX[ci],listY+i*lineH);
           });
         });
-        y=listY+Math.max(cols[0].length,cols[1].length,cols[2].length)*lineH;
+        y=listY+listRows*lineH;
       }
       resolve(cv.toDataURL('image/png'));
     }
