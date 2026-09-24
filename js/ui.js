@@ -18,7 +18,7 @@ function updateUI(){
   ho[1].textContent=state.portrait?'Övre halvan (motståndarens)':'Högra halvan (motståndarens)';
   ho[2].textContent=state.portrait?'Nedre halvan (egen)':'Vänstra halvan (egen)';
   syncHalfSel();
-  svg.style.cursor=(state.tool==='run'||state.tool==='pass'||state.tool==='text')?'crosshair':(state.tool==='erase'?'pointer':(state.tool==='move'&&state.half!=='full'?'grab':'default'));
+  svg.style.cursor=(state.tool==='run'||state.tool==='pass'||state.tool==='text')?'crosshair':(state.tool==='erase'||state.tool==='swap'?'pointer':(state.tool==='move'&&state.half!=='full'?'grab':'default'));
 }
 
 function fillForms(){

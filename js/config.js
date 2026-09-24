@@ -58,5 +58,6 @@ var HINTS={
   pass:'Dra över planen för att rita en passning (heldragen pil).',
   link:'Tryck på två spelare för att koppla ihop dem med en linje.',
   text:'Tryck på planen och skriv en text. Byt till Flytta för att flytta den, dra i hörnet för att ändra storlek.',
+  swap:'Tryck på två spelare för att byta plats på dem. Tryck på samma spelare igen för att avmarkera.',
   erase:'Tryck på en pil, länk eller text för att ta bort den.'
 };

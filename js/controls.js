@@ -2,7 +2,7 @@
 /* ---------- Knappar ---------- */
 document.querySelectorAll('[data-tool]').forEach(function(b){
   b.addEventListener('click',function(){
-    state.tool=b.dataset.tool; state.linkStart=null; state.sel=null; hidePop(); render(); updateUI();
+    state.tool=b.dataset.tool; state.linkStart=null; state.swapStart=null; state.sel=null; hidePop(); render(); updateUI();
   });
 });
 $('#btnUndo').addEventListener('click',function(){ state.ann.pop(); state.sel=null; render(); });

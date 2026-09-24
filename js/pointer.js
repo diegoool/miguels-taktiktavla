@@ -18,6 +18,16 @@ function handleLink(id){
   render();
 }
 
+function handleSwap(id){
+  var a=state.swapStart?findPlayer(state.swapStart):null, b=findPlayer(id);
+  if(!a){ state.swapStart=id; }
+  else {
+    if(a!==b&&b){ var x=a.x, y=a.y; a.x=b.x; a.y=b.y; b.x=x; b.y=y; }
+    state.swapStart=null;
+  }
+  render();
+}
+
 svg.addEventListener('pointerdown',function(e){
   if(state.playing||(e.pointerType==='mouse'&&e.button!==0)) return;
   e.preventDefault();
@@ -57,6 +67,7 @@ svg.addEventListener('pointerdown',function(e){
     return;
   }
   if(tool==='link'){ if(t&&t.dataset.id) handleLink(t.dataset.id); return; }
+  if(tool==='swap'){ if(t&&t.dataset.id) handleSwap(t.dataset.id); return; }
   if(tool==='text'){ textAt={x:p.x,y:p.y}; svg.setPointerCapture(e.pointerId); return; }
   if(tool==='run'||tool==='pass'){
     draw={t:tool,x1:p.x,y1:p.y,x2:p.x,y2:p.y};

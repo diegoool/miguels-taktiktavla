@@ -40,6 +40,6 @@ function rebuild(){
   pos.my.forEach(function(q,i){state.players.push({id:'m'+i,team:'m',num:i+1,x:q[0],y:q[1]})});
   pos.opp.forEach(function(q,i){state.players.push({id:'o'+i,team:'o',num:i+1,x:q[0],y:q[1]})});
   state.ball={x:pos.ball[0],y:pos.ball[1]};
-  state.ann=[]; state.phases=[]; state.linkStart=null; state.sel=null; state.sel=null;
+  state.ann=[]; state.phases=[]; state.linkStart=null; state.swapStart=null; state.sel=null;
   render(); updateUI();
 }

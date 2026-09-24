@@ -6,7 +6,7 @@ var state={
   players:[], ball:{x:52.5,y:34}, ann:[], labels:{}, tool:'move',
   portrait:window.innerWidth<600, showOpp:true, showBall:true, chan5:false, chan4:false,
   colors:{m:'#d62839',o:'#fecc00'}, pitch:'green', half:'full', panLo:-4, size:'n',
-  phases:[], playing:false, linkStart:null, sel:null, textBg:false, namesInCircle:false, customNum:{}
+  phases:[], playing:false, linkStart:null, swapStart:null, sel:null, textBg:false, namesInCircle:false, customNum:{}
 };
 
 /* ---------- Hjälpfunktioner ---------- */

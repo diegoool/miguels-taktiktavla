@@ -162,7 +162,7 @@ function render(){
       if(lab) below='<text class="lab" y="'+(pr+3).toFixed(2)+'" style="font-size:'+Math.max(2.2,2.7*k).toFixed(2)+'px">'+esc(lab)+'</text>';
       ringShape='<circle r="2.8" fill="transparent"/><circle class="ring" r="'+pr.toFixed(2)+'"/>';
     }
-    h+='<g class="pl pl-'+p.team+(state.linkStart===p.id?' sel':'')+'" data-id="'+p.id+'" transform="translate('+p.x+' '+p.y+')">'+
+    h+='<g class="pl pl-'+p.team+(state.linkStart===p.id||state.swapStart===p.id?' sel':'')+'" data-id="'+p.id+'" transform="translate('+p.x+' '+p.y+')">'+
        ringShape+
        '<g transform="rotate('+rot+')">'+center+below+'</g></g>';
   });
