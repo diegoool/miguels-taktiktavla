@@ -20,19 +20,9 @@ function setNameMode(on){
 $('#btnNumMode').addEventListener('click',function(){ setNameMode(false); });
 $('#btnNameMode').addEventListener('click',function(){ setNameMode(true); });
 $('#btnOrient').addEventListener('click',function(){ state.portrait=!state.portrait; hidePop(); render(); updateUI(); });
-$('#btnReset').addEventListener('click',function(){
-  if(state.playing) return;
-  hidePop();
-  $('#resetModal').hidden=false;
-  setTimeout(function(){ $('#resetCancel').focus(); },30);
-});
-$('#resetCancel').addEventListener('click',function(){ $('#resetModal').hidden=true; });
-$('#resetModal').addEventListener('click',function(e){ if(e.target===$('#resetModal')) $('#resetModal').hidden=true; });
-$('#resetConfirm').addEventListener('click',function(){
-  $('#resetModal').hidden=true;
+confirmModal('#btnReset','#resetModal','#resetCancel','#resetConfirm',function(){
   state.labels={}; state.customNum={}; rebuild(); renderSquad();
 });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#resetModal').hidden) $('#resetModal').hidden=true; });
 
 $('#size').addEventListener('change',function(e){
   state.n=+e.target.value;

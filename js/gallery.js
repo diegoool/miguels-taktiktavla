@@ -117,9 +117,8 @@ $('#printGal').addEventListener('click',function(){
   window.print();
 });
 window.addEventListener('afterprint',function(){ $('#printArea').innerHTML=''; });
-function galMsg(t){ $('#galMsg').textContent=t; }
-function shotMsg(t){ $('#shotMsg').textContent=t; }
-function defaultName(){ return state.myForm+' mot '+state.oppForm; }
+var galMsg=msgFn('#galMsg');
+var shotMsg=msgFn('#shotMsg');
 function fileName(n,ext){ return ((n||'').replace(/[\\\/:*?"<>|]+/g,'-').trim()||'taktiktavla')+'.'+(ext||'png'); }
 function dataToBytes(d){
   var b=atob(d.split(',')[1]), u=new Uint8Array(b.length);

@@ -22,8 +22,8 @@ $('#btnClearPhases').addEventListener('click',function(){ state.phases=[]; updat
 
 /* ---------- Sparade animationer ---------- */
 var anims=[], animArmed=null, animTimer=null;
-function animMsg(t){ $('#animMsg').textContent=t; }
-function animDefaultName(){ return state.myForm+' mot '+state.oppForm+' – animation'; }
+var animMsg=msgFn('#animMsg');
+function animDefaultName(){ return defaultName()+' – animation'; }
 function renderAnims(){
   var g=$('#animList');
   if(!anims.length){

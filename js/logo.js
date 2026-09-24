@@ -1,7 +1,7 @@
 'use strict';
 /* ---------- Logotyp ---------- */
 var logoData=null;
-function logoMsg(t){ $('#logoMsg').textContent=t; }
+var logoMsg=msgFn('#logoMsg');
 function updateLogoDisplay(){
   var img=$('#pageLogo');
   if(logoData){ img.src=logoData; img.hidden=false; }

@@ -10,7 +10,7 @@ function updateTruppenIcon(){
   else icon=tpCollapsed?TP_ICON_LEFT:TP_ICON_RIGHT;
   $('#truppenIcon').innerHTML=icon;
 }
-function tpMsg(t){ $('#tpMsg').textContent=t; }
+var tpMsg=msgFn('#tpMsg');
 function squadOnPitch(rec){
   if(rec.num==='') return false;
   return state.players.some(function(p){
@@ -49,16 +49,7 @@ $('#tpList').addEventListener('click',function(e){
   squad=squad.filter(function(r){return r.id!==b.dataset.tpdel;});
   renderSquad();
 });
-$('#tpClearStart').addEventListener('click',function(){
-  if(state.playing) return;
-  hidePop();
-  $('#clearStartModal').hidden=false;
-  setTimeout(function(){ $('#clearStartCancel').focus(); },30);
-});
-$('#clearStartCancel').addEventListener('click',function(){ $('#clearStartModal').hidden=true; });
-$('#clearStartModal').addEventListener('click',function(e){ if(e.target===$('#clearStartModal')) $('#clearStartModal').hidden=true; });
-$('#clearStartConfirm').addEventListener('click',function(){
-  $('#clearStartModal').hidden=true;
+confirmModal('#tpClearStart','#clearStartModal','#clearStartCancel','#clearStartConfirm',function(){
   state.players.forEach(function(p){
     if(p.team!=='m') return;
     delete state.labels[p.id]; delete state.customNum[p.id];
@@ -67,7 +58,6 @@ $('#clearStartConfirm').addEventListener('click',function(){
   render(); renderSquad();
   tpMsg('Startelvan är rensad.');
 });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#clearStartModal').hidden) $('#clearStartModal').hidden=true; });
 $('#truppenToggle').addEventListener('click',function(){
   tpCollapsed=!tpCollapsed;
   $('#truppen').classList.toggle('collapsed',tpCollapsed);

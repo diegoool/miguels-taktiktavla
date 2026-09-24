@@ -26,3 +26,23 @@ function assignPlayerNum(pid,newNum,team){
   if(conflict) state.customNum[conflict]=old;
   state.customNum[pid]=newNum;
 }
+
+/* ---------- Delade hjälpare ---------- */
+/* Returnerar en funktion som skriver ett statusmeddelande i elementet sel */
+function msgFn(sel){ return function(t){ $(sel).textContent=t; }; }
+function defaultName(){ return state.myForm+' mot '+state.oppForm; }
+/* Bekräftelsedialog: öppnas av openSel, stängs med Avbryt, klick på bakgrunden eller Escape */
+function confirmModal(openSel,modalSel,cancelSel,confirmSel,onConfirm){
+  var modal=$(modalSel);
+  function close(){ modal.hidden=true; }
+  $(openSel).addEventListener('click',function(){
+    if(state.playing) return;
+    hidePop();
+    modal.hidden=false;
+    setTimeout(function(){ $(cancelSel).focus(); },30);
+  });
+  $(cancelSel).addEventListener('click',close);
+  modal.addEventListener('click',function(e){ if(e.target===modal) close(); });
+  $(confirmSel).addEventListener('click',function(){ close(); onConfirm(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!modal.hidden) close(); });
+}

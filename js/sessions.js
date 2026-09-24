@@ -31,7 +31,7 @@ function sanitizeAnn(arr,ids){
   });
   return out;
 }
-function sesMsg(t){ $('#sesMsg').textContent=t; }
+var sesMsg=msgFn('#sesMsg');
 
 function serialize(name){
   var ann=state.ann.map(function(a){ var o={}; Object.keys(a).forEach(function(k){ if(k.charAt(0)!=='_') o[k]=a[k]; }); return o; });
@@ -183,7 +183,6 @@ function saveSessionRecord(name,data){
   sessions.unshift(rec); renderSessions();
   return tx('readwrite',function(st){return st.put(rec)},'ses');
 }
-function sesDefaultName(){ return state.myForm+' mot '+state.oppForm; }
 
 $('#sesForstasida').addEventListener('change',function(e){ $('#fsFields').hidden=!e.target.checked; });
 
@@ -301,7 +300,7 @@ function maybeCreateForstasida(){
 
 $('#sesSave').addEventListener('click',function(){
   if(state.playing) return;
-  var name=$('#sesName').value.trim()||sesDefaultName();
+  var name=$('#sesName').value.trim()||defaultName();
   maybeCreateForstasida().then(function(){
     saveSessionRecord(name,serialize(name)).then(function(ok){
       sesMsg(ok?'Sparade sessionen "'+name+'".':'Sessionen finns i listan men kunde inte sparas i webbläsaren. Exportera den som fil för att behålla den.');

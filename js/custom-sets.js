@@ -1,7 +1,7 @@
 'use strict';
 /* ---------- Egna fasta situationer (Anpassad fast situation) ---------- */
 var customSets=[], editingCsId=null, csArmed=null, csTimer=null;
-function csMsg(t){ $('#csMsg').textContent=t; }
+var csMsg=msgFn('#csMsg');
 function cloneAnn(arr){
   return arr.map(function(a){ var o={}; Object.keys(a).forEach(function(k){ if(k.charAt(0)!=='_') o[k]=a[k]; }); return o; });
 }
