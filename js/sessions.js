@@ -72,7 +72,7 @@ function applySession(d){
   state.chan5=d.chan5!==undefined?!!d.chan5:!!d.channels; state.chan4=!!d.chan4;
   if(state.chan5&&state.chan4) state.chan4=false;
   state.namesInCircle=!!d.namesInCircle;
-  state.tool='move'; state.linkStart=null;
+  state.tool='move'; state.linkStart=null; state.swapStart=null;
 
   rebuild();
 
