@@ -332,6 +332,7 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
         </div>
         <button type="button" class="btn primary" id="tpAdd">Lägg till spelare</button>
         <button type="button" class="btn" id="tpStartImg">Bild startelva</button>
+        <button type="button" class="btn" id="tpClearStart">Rensa startelva</button>
         <p class="hint" id="tpMsg" role="status" style="margin:0">Dra till planen för namn/nummer. Klicka för Ersättare/Ej uttagen.</p>
         <ul class="tp-list" id="tpList"></ul>
       </div>
@@ -436,6 +437,17 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     <div class="row">
       <button type="button" class="btn primary" id="resetConfirm">Ja, återställ</button>
       <button type="button" class="btn" id="resetCancel">Avbryt</button>
+    </div>
+  </div>
+</div>
+
+<div class="shot" id="clearStartModal" role="dialog" aria-modal="true" aria-labelledby="clearStartTitle" hidden>
+  <div class="shot-card">
+    <h2 id="clearStartTitle">Rensa startelvan?</h2>
+    <p>Alla spelare från truppen tas bort från planen och statusarna Startelva, Ersättare och Ej uttagen nollställs. Truppen finns kvar. Det går inte att ångra.</p>
+    <div class="row">
+      <button type="button" class="btn primary" id="clearStartConfirm">Ja, rensa</button>
+      <button type="button" class="btn" id="clearStartCancel">Avbryt</button>
     </div>
   </div>
 </div>
@@ -1655,6 +1667,25 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
     squad=squad.filter(function(r){return r.id!==b.dataset.tpdel;});
     renderSquad();
   });
+  $('#tpClearStart').addEventListener('click',function(){
+    if(state.playing) return;
+    hidePop();
+    $('#clearStartModal').hidden=false;
+    setTimeout(function(){ $('#clearStartCancel').focus(); },30);
+  });
+  $('#clearStartCancel').addEventListener('click',function(){ $('#clearStartModal').hidden=true; });
+  $('#clearStartModal').addEventListener('click',function(e){ if(e.target===$('#clearStartModal')) $('#clearStartModal').hidden=true; });
+  $('#clearStartConfirm').addEventListener('click',function(){
+    $('#clearStartModal').hidden=true;
+    state.players.forEach(function(p){
+      if(p.team!=='m') return;
+      delete state.labels[p.id]; delete state.customNum[p.id];
+    });
+    squad.forEach(function(r){ r.status=null; });
+    render(); renderSquad();
+    tpMsg('Startelvan är rensad.');
+  });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#clearStartModal').hidden) $('#clearStartModal').hidden=true; });
   $('#truppenToggle').addEventListener('click',function(){
     tpCollapsed=!tpCollapsed;
     $('#truppen').classList.toggle('collapsed',tpCollapsed);
