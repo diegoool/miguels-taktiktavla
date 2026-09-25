@@ -50,14 +50,33 @@ function serialize(name){
     animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; }),
     customSets:customSets.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
     squad:squad.map(function(r){ return {num:r.num,name:r.name,status:r.status||null}; }),
-    logo:logoData||null
+    logo:logoData||null,
+    fsInfo:getFsInputs()
   };
 }
 
+/* Förstasidans fält (hemma/borta, motstånd, datum, samling, matchstart) sparas med sessionen */
+function getFsInputs(){
+  return {
+    side:(document.querySelector('input[name="fsSide"]:checked')||{}).value||'hemma',
+    motstand:$('#fsMotstand').value.trim(),
+    datum:$('#fsDatum').value.trim(),
+    samling:$('#fsSamling').value.trim(),
+    matchstart:$('#fsMatchstart').value.trim()
+  };
+}
+function setFsInputs(f){
+  f=f||{};
+  var r=document.querySelector('input[name="fsSide"][value="'+(f.side==='borta'?'borta':'hemma')+'"]'); if(r) r.checked=true;
+  $('#fsMotstand').value=f.motstand||''; $('#fsDatum').value=f.datum||'';
+  $('#fsSamling').value=f.samling||''; $('#fsMatchstart').value=f.matchstart||'';
+}
 function sanitizeFs(f){
   if(!f||typeof f!=='object') return null;
   function s(v,n){ return typeof v==='string'?v.slice(0,n):''; }
-  return {side:f.side==='borta'?'borta':'hemma',motstand:s(f.motstand,60),datum:s(f.datum,30),samling:s(f.samling,30),matchstart:s(f.matchstart,30),sig:s(f.sig,20000)};
+  var o={side:f.side==='borta'?'borta':'hemma',motstand:s(f.motstand,60),datum:s(f.datum,30),samling:s(f.samling,30),matchstart:s(f.matchstart,30),sig:s(f.sig,20000)};
+  if(isFinite(+f.listY)&&f.listY!==null&&f.listY!=='') o.listY=clamp(+f.listY,0,20000);
+  return o;
 }
 
 /* ---------- Ändringar i den aktiva sessionen ---------- */
@@ -161,6 +180,9 @@ function applySession(d){
     gallery.push(gr);
   });
   renderGallery();
+  /* Äldre sessioner saknar fälten; ta dem då från förstasidan om den vet dem */
+  var fsImg=gallery[firstFsIndex(gallery)];
+  setFsInputs(sanitizeFs(d.fsInfo)||(fsImg&&fsImg.fs)||null);
 
   anims=[];
   (Array.isArray(d.animations)?d.animations.slice(0,50):[]).forEach(function(a){
@@ -255,9 +277,87 @@ function drawWrappedCenter(ctx,text,cx,y,maxW,lineH){
   return y;
 }
 
+/* Spelarlistan på förstasidan: startelva och ersättare, sorterade på nummer, i tre kolumner */
+var FS_W=1100, FS_LINE=40;
+function fsListArr(){
+  return squad.filter(function(r){ return squadOnPitch(r)||r.status==='ers'; })
+    .sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
+}
+function drawFsList(ctx,listY,listArr){
+  var rows=Math.ceil(listArr.length/3);
+  var cols=[listArr.slice(0,rows),listArr.slice(rows,2*rows),listArr.slice(2*rows)];
+  var blockW=Math.min(780,FS_W-160), startX=(FS_W-blockW)/2, colW=blockW/3;
+  ctx.textAlign='left'; ctx.font='500 26px Arial, Helvetica, sans-serif'; ctx.fillStyle='#1b232c';
+  cols.forEach(function(col,ci){
+    col.forEach(function(r,i){
+      ctx.fillText((r.num!==''?r.num+'. ':'')+r.name,startX+ci*colW,listY+i*FS_LINE);
+    });
+  });
+}
+function fsGradient(ctx,H){
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#eef1f5');
+  return g;
+}
+/* Var spelarlistan börjar (baslinjen för första raden) i en förstasida som skapats innan
+   den positionen sparades: sök textrader nedifrån med 40 px mellanrum som börjar i en kolumn. */
+function findFsListY(img){
+  var cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height;
+  var c=cv.getContext('2d'); c.drawImage(img,0,0);
+  var d=c.getImageData(0,0,cv.width,cv.height).data, bands=[], cur=null;
+  for(var y=20;y<cv.height;y++){
+    var minX=-1;
+    for(var x=0;x<cv.width;x++){
+      var i=(y*cv.width+x)*4;
+      if(d[i]+d[i+1]+d[i+2]<450){ minX=x; break; }
+    }
+    if(minX>=0){ if(cur){ cur.bottom=y; cur.minX=Math.min(cur.minX,minX); } else cur={top:y,bottom:y,minX:minX}; }
+    else if(cur){ bands.push(cur); cur=null; }
+  }
+  if(cur) bands.push(cur);
+  if(!bands.length) return 120;
+  /* Varje listrad har text i första kolumnen (eller bara i tredje i äldre bilder med ersättarna för sig);
+     centrerad rubriktext kan inte börja där med listans teckenhöjd */
+  function inCol(b){ return b.bottom-b.top<=32&&[160,680].some(function(cx){ return b.minX>=cx-10&&b.minX<=cx+15; }); }
+  var top=null;
+  for(var k=bands.length-1;k>=0;k--){
+    var b=bands[k];
+    if(!inCol(b)) break;
+    if(top!==null&&Math.abs(top-b.top-FS_LINE)>1) break;
+    top=b.top;
+  }
+  if(top!==null) return top+19;
+  /* Ingen lista: lägg den där den skulle ha hamnat under sista raden (motståndet är större text) */
+  var last=bands[bands.length-1];
+  return last.bottom+(last.bottom-last.top>32?132:78);
+}
+/* Rita om bara spelarlistan: allt ovanför (logga, hemma/borta, motstånd, datum …) behålls från den gamla bilden */
+function redrawFsList(old){
+  return new Promise(function(resolve,reject){
+    var img=new Image();
+    img.onload=function(){
+      try{
+        if(img.width!==FS_W) throw new Error('size');
+        var listY=(old.fs&&old.fs.listY!=null)?old.fs.listY:findFsListY(img);
+        var cut=Math.max(0,Math.min(img.height,listY-30));
+        var listArr=fsListArr();
+        var H=Math.max(500,Math.round(listY+Math.ceil(listArr.length/3)*FS_LINE+50));
+        var cv=document.createElement('canvas'); cv.width=FS_W; cv.height=H;
+        var ctx=cv.getContext('2d');
+        ctx.fillStyle=fsGradient(ctx,img.height); ctx.fillRect(0,0,FS_W,H);
+        ctx.drawImage(img,0,0,FS_W,cut,0,0,FS_W,cut);
+        drawFsList(ctx,listY,listArr);
+        resolve({data:cv.toDataURL('image/png'),listY:listY});
+      }catch(e){ reject(e); }
+    };
+    img.onerror=reject;
+    img.src=old.data;
+  });
+}
+
 function makeForstasida(info){
   return new Promise(function(resolve){
-    var W=1100, cx=W/2;
+    var W=FS_W, cx=W/2;
     var mctx=document.createElement('canvas').getContext('2d');
     mctx.font='800 58px Arial, Helvetica, sans-serif';
     function wrapCount(text,maxW){
@@ -269,8 +369,7 @@ function makeForstasida(info){
       if(line) n++;
       return Math.max(1,n);
     }
-    var listArr=squad.filter(function(r){ return squadOnPitch(r)||r.status==='ers'; })
-      .sort(function(a,b){ return (+a.num||99)-(+b.num||99); });
+    var listArr=fsListArr();
     var listRows=Math.ceil(listArr.length/3);
     var motstandLines=wrapCount((info.motstand||'Motstånd').toUpperCase(),W-140);
     var infoLines=[info.datum,info.samling,info.matchstart].filter(Boolean).length;
@@ -281,9 +380,7 @@ function makeForstasida(info){
     var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
     var ctx=cv.getContext('2d');
     var accent=(state.colors&&state.colors.m)||'#0a6fb0';
-    var grad=ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,'#ffffff'); grad.addColorStop(1,'#eef1f5');
-    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=fsGradient(ctx,H); ctx.fillRect(0,0,W,H);
     ctx.fillStyle=accent; ctx.fillRect(0,0,W,16);
     ctx.textAlign='center';
 
@@ -299,21 +396,8 @@ function makeForstasida(info){
       });
       y+=36;
 
-      if(listArr.length){
-        var cols=[listArr.slice(0,listRows),listArr.slice(listRows,2*listRows),listArr.slice(2*listRows)];
-        var blockW=Math.min(780,W-160), startX=(W-blockW)/2, colW=blockW/3;
-        var colX=[startX,startX+colW,startX+2*colW];
-        var listY=y;
-        ctx.textAlign='left'; ctx.font='500 26px Arial, Helvetica, sans-serif'; ctx.fillStyle='#1b232c';
-        var lineH=40;
-        cols.forEach(function(col,ci){
-          col.forEach(function(r,i){
-            var label=(r.num!==''?r.num+'. ':'')+r.name;
-            ctx.fillText(label,colX[ci],listY+i*lineH);
-          });
-        });
-        y=listY+listRows*lineH;
-      }
+      info.listY=y;
+      drawFsList(ctx,y,listArr);
       resolve(cv.toDataURL('image/png'));
     }
 
@@ -338,13 +422,7 @@ function makeForstasida(info){
 
 function maybeCreateForstasida(){
   if(!$('#sesForstasida').checked) return Promise.resolve();
-  var info={
-    side:(document.querySelector('input[name="fsSide"]:checked')||{}).value||'hemma',
-    motstand:$('#fsMotstand').value.trim(),
-    datum:$('#fsDatum').value.trim(),
-    samling:$('#fsSamling').value.trim(),
-    matchstart:$('#fsMatchstart').value.trim()
-  };
+  var info=getFsInputs();
   return makeForstasida(info).then(function(dataUrl){
     info.sig=squadSig();
     var rec={id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:Date.now(),data:dataUrl,fs:info};
@@ -353,20 +431,17 @@ function maybeCreateForstasida(){
   }).catch(function(){ sesMsg('Kunde inte skapa förstasidan, men sessionen sparas ändå.'); });
 }
 
-/* Skapa om den aktiva sessionens förstasida utifrån truppen. Den gamla ersätts både bland
-   bilderna och i den sparade sessionen; övriga osparade ändringar lämnas orörda. */
+/* Uppdatera spelarlistan på den aktiva sessionens förstasida utifrån truppen. Resten av bilden
+   behålls. Den gamla ersätts både bland bilderna och i den sparade sessionen; övriga osparade
+   ändringar lämnas orörda. */
 function updateForstasida(rec){
   var old=gallery[firstFsIndex(gallery)]; if(!old) return;
   var btn=document.querySelector('#sesList [data-sfs="'+rec.id+'"]'); if(btn) btn.disabled=true;
-  var f=old.fs||{};
-  var info={side:f.side||(document.querySelector('input[name="fsSide"]:checked')||{}).value||'hemma',
-    motstand:f.motstand!=null?f.motstand:$('#fsMotstand').value.trim(),
-    datum:f.datum!=null?f.datum:$('#fsDatum').value.trim(),
-    samling:f.samling!=null?f.samling:$('#fsSamling').value.trim(),
-    matchstart:f.matchstart!=null?f.matchstart:$('#fsMatchstart').value.trim()};
+  var info=cloneData(old.fs||{});
   var sig=squadSig();
-  makeForstasida(info).then(function(dataUrl){
-    info.sig=sig;
+  redrawFsList(old).then(function(res){
+    var dataUrl=res.data;
+    info.sig=sig; info.listY=res.listY;
     var ts=Date.now();
     gallery=replaceFs(gallery,{id:'i'+ts.toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:ts,data:dataUrl,fs:info});
     renderGallery();
