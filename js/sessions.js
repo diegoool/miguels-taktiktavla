@@ -124,8 +124,16 @@ function refreshSesFlags(force){
   var f={ses:on&&JSON.stringify(sesLight(serialize('')))!==sesBaseStr, hasFs:hasFs, fs:hasFs&&fsBaseSig!==null&&squadSig()!==fsBaseSig};
   if(!force&&f.ses===sesFlags.ses&&f.fs===sesFlags.fs&&f.hasFs===sesFlags.hasFs) return;
   sesFlags=f;
-  document.querySelectorAll('#sesList [data-supd]').forEach(function(b){ b.disabled=!(b.dataset.supd===activeSesId&&f.ses); });
-  $('#fsBtn').textContent=hasFs?'Update Förstasida':'Förstasida';
+  document.querySelectorAll('#sesList [data-supd]').forEach(function(b){
+    var dirty=b.dataset.supd===activeSesId&&f.ses;
+    b.disabled=!dirty; b.classList.toggle('has-dot',dirty);
+    b.setAttribute('aria-label',sparaLabel(dirty));
+  });
+  /* Röd prick: truppen har ändrats sedan förstasidan skapades/uppdaterades */
+  var fb=$('#fsBtn');
+  fb.textContent=hasFs?'Update Förstasida':'Förstasida';
+  fb.classList.toggle('has-dot',f.fs);
+  fb.setAttribute('aria-label',fb.textContent+(f.fs?' (truppen har ändrats)':''));
   $('#fsTrupp').disabled=fsBusy||!f.fs;
 }
 setInterval(function(){ refreshSesFlags(false); },600);
@@ -245,6 +253,8 @@ function applySession(d){
   return true;
 }
 
+/* Spara-knappen på sessionskortet; röd prick när den laddade sessionen har osparade ändringar */
+function sparaLabel(dirty){ return 'Spara ändringarna i den laddade sessionen'+(dirty?' (osparade ändringar)':''); }
 function renderSessions(){
   var g=$('#sesList');
   if(!sessions.length){
@@ -259,7 +269,7 @@ function renderSessions(){
        '<div class="row icon-row">'+iconBtn('load','Ladda','data-sload="'+r.id+'"','primary')+
        (dlCap?iconBtn('export','Exportera','data-sexp="'+r.id+'"'):'')+
        delBtn(sesArmed===r.id,'data-sdel="'+r.id+'"')+
-       iconBtn('save','Update','data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled'),'','Update: spara ändringarna i den laddade sessionen')+'</div></article>';
+       iconBtn('save','Spara','data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled'),act&&sesFlags.ses?'has-dot':'',sparaLabel(act&&sesFlags.ses))+'</div></article>';
   });
   g.innerHTML=h;
 }
@@ -485,7 +495,7 @@ $('#fsSave').addEventListener('click',function(){
     .then(fsDone(had?'Förstasidan uppdaterades':'Förstasidan skapades')).catch(fsFail);
 });
 
-/* Update truppen (i dialogen): spara truppen och rita om spelarlistan, resten av förstasidan behålls */
+/* Uppdatera truppen (i dialogen): spara truppen och rita om spelarlistan, resten av förstasidan behålls */
 $('#fsTrupp').addEventListener('click',function(){
   var old=gallery[firstFsIndex(gallery)]; if(!old||fsBusy||state.playing) return;
   var info=cloneData(old.fs||{}), sig=squadSig();

@@ -53,9 +53,13 @@ input[type=color]{width:100%;height:42px;padding:3px;border:1px solid var(--line
 
 /* Ikonknappar på korten med tooltip */
 .icon-row{gap:6px}
-.btn.icon-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;min-width:40px;padding:0}
+.btn.icon-btn,.btn.dot-btn{position:relative}
+.btn.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;min-width:40px;padding:0}
 .btn.icon-btn svg{display:block;pointer-events:none}
 .btn.icon-btn.armed{background:#c62828;border-color:#c62828;color:#fff}
 .btn.icon-btn[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);background:var(--ink);color:var(--bg);font:600 12px/1.2 'Barlow',sans-serif;padding:5px 8px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s;z-index:5}
 .btn.icon-btn:hover::after,.btn.icon-btn:focus-visible::after,.btn.icon-btn.armed::after{opacity:1}
 @media (hover:none){.btn.icon-btn:hover::after{opacity:0}.btn.icon-btn.armed::after{opacity:1}}
+
+/* Röd notisprick: osparade ändringar / förstasidan behöver uppdateras */
+.btn.has-dot::before{content:"";position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#e02424;box-shadow:0 0 0 2px var(--panel);pointer-events:none}
