@@ -22,3 +22,4 @@
 .card.drop-before{box-shadow:-3px 0 0 var(--accent) inset}
 .card.drop-after{box-shadow:3px 0 0 var(--accent) inset}
 .drag-ghost{position:fixed;z-index:80;pointer-events:none;opacity:.92;transform:rotate(-1.5deg);box-shadow:0 14px 32px rgba(0,0,0,.45)}
+.card.ses-active{border-color:#16a34a;box-shadow:0 0 0 2px #16a34a}

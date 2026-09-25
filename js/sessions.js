@@ -1,6 +1,8 @@
 'use strict';
 /* ---------- Sessioner ---------- */
 var sessions=[], sesArmed=null, sesTimer=null;
+/* Aktiv session: det som senast laddades/sparades, och utgångsläget för att upptäcka ändringar */
+var activeSesId=null, sesBase=null, sesBaseStr=null, fsBaseSig=null, sesFlags={ses:false,fs:false};
 function has(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
 function num(v,a,b,def){ v=+v; return isFinite(v)?clamp(v,a,b):def; }
 function sanitizePhases(arr){
@@ -44,13 +46,63 @@ function serialize(name){
     pitch:state.pitch, half:state.half, panLo:state.panLo, size:state.size, portrait:state.portrait,
     showOpp:state.showOpp, showBall:state.showBall, chan5:state.chan5, chan4:state.chan4, namesInCircle:state.namesInCircle,
     phases:state.phases,
-    images:gallery.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
+    images:gallery.map(function(r){ var o={name:r.name,ts:r.ts,data:r.data}; if(r.fs) o.fs=r.fs; return o; }),
     animations:anims.map(function(r){ return {name:r.name,ts:r.ts,phases:r.phases}; }),
     customSets:customSets.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
     squad:squad.map(function(r){ return {num:r.num,name:r.name,status:r.status||null}; }),
     logo:logoData||null
   };
 }
+
+function sanitizeFs(f){
+  if(!f||typeof f!=='object') return null;
+  function s(v,n){ return typeof v==='string'?v.slice(0,n):''; }
+  return {side:f.side==='borta'?'borta':'hemma',motstand:s(f.motstand,60),datum:s(f.datum,30),samling:s(f.samling,30),matchstart:s(f.matchstart,30),sig:s(f.sig,20000)};
+}
+
+/* ---------- Ändringar i den aktiva sessionen ---------- */
+function isForstasida(r){ return !!(r&&(r.fs||r.name==='Förstasida')); }
+function firstFsIndex(arr){ for(var i=0;i<arr.length;i++) if(isForstasida(arr[i])) return i; return -1; }
+/* Ersätt alla förstasidor i listan med en ny, på den första förstasidans plats */
+function replaceFs(arr,rec){
+  var at=firstFsIndex(arr);
+  var out=arr.filter(function(r){ return !isForstasida(r); });
+  out.splice(at<0?0:Math.min(at,out.length),0,rec);
+  return out;
+}
+/* Truppens läge så som det syns på förstasidan: nummer, namn och startelva/ersättare/ej uttagen */
+function squadSig(){
+  return JSON.stringify(squad.map(function(r){ return [String(r.num),r.name,squadOnPitch(r)?'start':(r.status||'')]; }).sort());
+}
+function imgSig(im){ return im.name+'|'+im.ts+'|'+im.data.length+'|'+im.data.slice(-48)+'|'+(im.fs?im.fs.sig:''); }
+/* Lätt kopia av en session att jämföra med: bilder och logga ersätts av korta avtryck */
+function sesLight(d){
+  var o={}; Object.keys(d).forEach(function(k){ o[k]=d[k]; });
+  o.name=''; o.images=(d.images||[]).map(function(im){ return {s:imgSig(im),name:im.name,fs:!!im.fs}; });
+  o.logo=d.logo?d.logo.length+'|'+d.logo.slice(-48):null;
+  ['labels','customNum'].forEach(function(k){ var m=d[k]||{}, n={}; Object.keys(m).sort().forEach(function(x){ n[x]=m[x]; }); o[k]=n; });
+  return o;
+}
+function cloneData(d){ return JSON.parse(JSON.stringify(d)); }
+function activeSession(){ return activeSesId?sessions.filter(function(r){ return r.id===activeSesId; })[0]||null:null; }
+function setActiveSession(id){
+  activeSesId=id;
+  sesBase=id?cloneData(sesLight(serialize(''))):null;
+  sesBaseStr=sesBase?JSON.stringify(sesBase):null;
+  var fr=gallery[firstFsIndex(gallery)];
+  fsBaseSig=fr?((fr.fs&&fr.fs.sig)||squadSig()):null;
+  refreshSesFlags(true);
+}
+function refreshSesFlags(force){
+  if(state.playing&&!force) return;
+  var on=!!activeSession();
+  var f={ses:on&&JSON.stringify(sesLight(serialize('')))!==sesBaseStr, fs:on&&fsBaseSig!==null&&firstFsIndex(gallery)>=0&&squadSig()!==fsBaseSig};
+  if(!force&&f.ses===sesFlags.ses&&f.fs===sesFlags.fs) return;
+  sesFlags=f;
+  document.querySelectorAll('#sesList [data-supd]').forEach(function(b){ b.disabled=!(b.dataset.supd===activeSesId&&f.ses); });
+  document.querySelectorAll('#sesList [data-sfs]').forEach(function(b){ b.disabled=!(b.dataset.sfs===activeSesId&&f.fs); });
+}
+setInterval(function(){ refreshSesFlags(false); },600);
 
 function applySession(d){
   if(!d||typeof d!=='object'||d.app!=='taktiktavla') return false;
@@ -104,7 +156,9 @@ function applySession(d){
   (Array.isArray(d.images)?d.images.slice(0,50):[]).forEach(function(im){
     if(!im||typeof im.data!=='string'||im.data.length>8000000) return;
     if(!/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(im.data)) return;
-    gallery.push({id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name:String(im.name==null?'Bild':im.name).slice(0,60),ts:num(im.ts,0,8.64e15,Date.now()),data:im.data});
+    var gr={id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name:String(im.name==null?'Bild':im.name).slice(0,60),ts:num(im.ts,0,8.64e15,Date.now()),data:im.data};
+    var fs=sanitizeFs(im.fs); if(fs) gr.fs=fs;
+    gallery.push(gr);
   });
   renderGallery();
 
@@ -171,16 +225,20 @@ function renderSessions(){
   var h='';
   sessions.forEach(function(r){
     var d=r.data||{}, sub=(d.n?d.n+' mot '+d.n+', ':'')+(d.myForm||'')+' mot '+(d.oppForm||'');
-    h+='<article class="card"><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+((d.animations&&d.animations.length)||0)+' animationer, '+((d.images&&d.images.length)||0)+' bilder</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
+    var act=r.id===activeSesId;
+    h+='<article class="card'+(act?' ses-active':'')+'"'+(act?' aria-current="true"':'')+'><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+((d.animations&&d.animations.length)||0)+' animationer, '+((d.images&&d.images.length)||0)+' bilder</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
        '<div class="row"><button type="button" class="btn primary" data-sload="'+r.id+'">Ladda</button>'+
        (dlCap?'<button type="button" class="btn" data-sexp="'+r.id+'">Exportera</button>':'')+
-       '<button type="button" class="btn" data-sdel="'+r.id+'">'+(sesArmed===r.id?'Bekräfta':'Ta bort')+'</button></div></article>';
+       '<button type="button" class="btn" data-sdel="'+r.id+'">'+(sesArmed===r.id?'Bekräfta':'Ta bort')+'</button></div>'+
+       '<div class="row"><button type="button" class="btn" data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled')+' title="Spara ändringarna i den laddade sessionen">Update</button>'+
+       '<button type="button" class="btn" data-sfs="'+r.id+'"'+(act&&sesFlags.fs?'':' disabled')+' title="Skapa om förstasidan utifrån truppen">Update Förstasida</button></div></article>';
   });
   g.innerHTML=h;
 }
 function saveSessionRecord(name,data){
-  var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,ts:Date.now(),data:data};
-  sessions.unshift(rec); renderSessions();
+  var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,ts:Date.now(),data:cloneData(data)};
+  sessions.unshift(rec);
+  setActiveSession(rec.id); renderSessions();
   return tx('readwrite',function(st){return st.put(rec)},'ses');
 }
 
@@ -288,10 +346,41 @@ function maybeCreateForstasida(){
     matchstart:$('#fsMatchstart').value.trim()
   };
   return makeForstasida(info).then(function(dataUrl){
-    var rec={id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:Date.now(),data:dataUrl};
-    gallery.unshift(rec);
+    info.sig=squadSig();
+    var rec={id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:Date.now(),data:dataUrl,fs:info};
+    gallery=replaceFs(gallery,rec);
     renderGallery();
   }).catch(function(){ sesMsg('Kunde inte skapa förstasidan, men sessionen sparas ändå.'); });
+}
+
+/* Skapa om den aktiva sessionens förstasida utifrån truppen. Den gamla ersätts både bland
+   bilderna och i den sparade sessionen; övriga osparade ändringar lämnas orörda. */
+function updateForstasida(rec){
+  var old=gallery[firstFsIndex(gallery)]; if(!old) return;
+  var btn=document.querySelector('#sesList [data-sfs="'+rec.id+'"]'); if(btn) btn.disabled=true;
+  var f=old.fs||{};
+  var info={side:f.side||(document.querySelector('input[name="fsSide"]:checked')||{}).value||'hemma',
+    motstand:f.motstand!=null?f.motstand:$('#fsMotstand').value.trim(),
+    datum:f.datum!=null?f.datum:$('#fsDatum').value.trim(),
+    samling:f.samling!=null?f.samling:$('#fsSamling').value.trim(),
+    matchstart:f.matchstart!=null?f.matchstart:$('#fsMatchstart').value.trim()};
+  var sig=squadSig();
+  makeForstasida(info).then(function(dataUrl){
+    info.sig=sig;
+    var ts=Date.now();
+    gallery=replaceFs(gallery,{id:'i'+ts.toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:ts,data:dataUrl,fs:info});
+    renderGallery();
+    var im={name:'Förstasida',ts:ts,data:dataUrl,fs:cloneData(info)};
+    rec.data.images=replaceFs(rec.data.images||[],im);
+    /* Utgångsläget får samma bilder, så att bytet inte räknas som en osparad ändring */
+    sesBase.images=replaceFs(sesBase.images,{s:imgSig(im),name:'Förstasida',fs:true});
+    sesBaseStr=JSON.stringify(sesBase);
+    fsBaseSig=sig;
+    refreshSesFlags(true);
+    return tx('readwrite',function(st){return st.put(rec)},'ses');
+  }).then(function(ok){
+    sesMsg(ok?'Förstasidan uppdaterades.':'Förstasidan uppdaterades men sessionen kunde inte sparas i webbläsaren.');
+  }).catch(function(){ sesMsg('Det gick inte att skapa förstasidan.'); refreshSesFlags(true); });
 }
 
 $('#sesSave').addEventListener('click',function(){
@@ -327,12 +416,23 @@ $('#sesFile').addEventListener('change',function(e){
 
 $('#sesList').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b) return;
-  var id=b.dataset.sload||b.dataset.sexp||b.dataset.sdel;
+  var id=b.dataset.sload||b.dataset.sexp||b.dataset.sdel||b.dataset.supd||b.dataset.sfs;
   var rec=sessions.filter(function(r){return r.id===id})[0];
   if(!rec) return;
   if(b.dataset.sload){
     if(state.playing) return;
-    sesMsg(applySession(rec.data)?'Laddade "'+rec.name+'".':'Sessionen kunde inte laddas.');
+    if(applySession(rec.data)){ setActiveSession(rec.id); renderSessions(); sesMsg('Laddade "'+rec.name+'".'); }
+    else sesMsg('Sessionen kunde inte laddas.');
+  } else if(b.dataset.supd){
+    if(state.playing||id!==activeSesId) return;
+    rec.data=cloneData(serialize(rec.name)); rec.ts=Date.now();
+    setActiveSession(rec.id); renderSessions();
+    tx('readwrite',function(st){return st.put(rec)},'ses').then(function(ok){
+      sesMsg(ok?'Uppdaterade sessionen "'+rec.name+'".':'Sessionen uppdaterades i listan men kunde inte sparas i webbläsaren.');
+    });
+  } else if(b.dataset.sfs){
+    if(state.playing||id!==activeSesId) return;
+    updateForstasida(rec);
   } else if(b.dataset.sexp){
     if(!dlCap) return;
     dlCap.save({filename:fileName(rec.name,'json'),data:JSON.stringify(Object.assign({},rec.data,{name:rec.name}))}).then(function(){
@@ -344,6 +444,7 @@ $('#sesList').addEventListener('click',function(e){
     if(sesArmed===id){
       clearTimeout(sesTimer); sesArmed=null;
       sessions=sessions.filter(function(r){return r.id!==id});
+      if(activeSesId===id) setActiveSession(null);
       renderSessions();
       tx('readwrite',function(st){return st.delete(id)},'ses');
       sesMsg('Sessionen togs bort.');
