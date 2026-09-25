@@ -216,15 +216,6 @@
       <button type="button" class="btn" id="logoRemove" hidden>Ta bort logotyp</button>
     </div>
     <p class="hint" id="logoMsg" role="status" style="margin:0 0 10px">Logotypen visas uppe till höger på sidan och sparas med sessionen.</p>
-    <label class="chk" style="margin-bottom:8px"><input type="checkbox" id="sesForstasida"> Skapa förstasida</label>
-    <div class="row" id="fsFields" hidden style="margin-bottom:10px">
-      <label class="chk"><input type="radio" name="fsSide" value="hemma" checked> Hemma</label>
-      <label class="chk"><input type="radio" name="fsSide" value="borta"> Borta</label>
-      <input class="txt" type="text" id="fsMotstand" maxlength="40" placeholder="Motstånd" aria-label="Motstånd" style="flex:1 1 160px;max-width:220px">
-      <input class="txt" type="text" id="fsDatum" maxlength="30" placeholder="Datum" aria-label="Datum" style="flex:1 1 140px;max-width:180px">
-      <input class="txt" type="text" id="fsSamling" maxlength="30" placeholder="Samling" aria-label="Samling" style="flex:1 1 140px;max-width:180px">
-      <input class="txt" type="text" id="fsMatchstart" maxlength="30" placeholder="Matchstart" aria-label="Matchstart" style="flex:1 1 140px;max-width:180px">
-    </div>
     <div class="row">
       <input class="txt" type="text" id="sesName" maxlength="60" placeholder="Namn på sessionen" aria-label="Namn på sessionen" style="flex:1 1 220px;max-width:320px">
       <button type="button" class="btn primary" id="sesSave">Spara session</button>
@@ -242,6 +233,8 @@
     <p>Skärmbilder du tar följer med när du trycker på Spara session. Dra i handtaget <span aria-hidden="true">⠿⠿</span> på ett kort för att ändra ordningen, den avgör i vilken ordning de skrivs ut.</p>
     <div class="row">
       <button type="button" class="btn primary js-shot">Ta skärmbild</button>
+      <button type="button" class="btn" id="fsBtn">Förstasida</button>
+      <button type="button" class="btn" id="fsTrupp" disabled title="Uppdatera spelarlistan på förstasidan utifrån truppen">Update truppen</button>
       <button type="button" class="btn" id="printGal" disabled>Skriv ut bilderna</button>
     </div>
     <p class="hint" id="galMsg" role="status"></p>
@@ -285,6 +278,28 @@
     <div class="row">
       <button type="button" class="btn primary" id="clearStartConfirm">Ja, rensa</button>
       <button type="button" class="btn" id="clearStartCancel">Avbryt</button>
+    </div>
+  </div>
+</div>
+
+<div class="shot" id="fsModal" role="dialog" aria-modal="true" aria-labelledby="fsTitle" hidden>
+  <div class="shot-card">
+    <h2 id="fsTitle">Förstasida</h2>
+    <div class="row">
+      <label class="chk"><input type="radio" name="fsSide" value="hemma" checked> Hemma</label>
+      <label class="chk"><input type="radio" name="fsSide" value="borta"> Borta</label>
+    </div>
+    <div class="row">
+      <input class="txt" type="text" id="fsMotstand" maxlength="40" placeholder="Motstånd" aria-label="Motstånd" style="flex:1 1 160px">
+      <input class="txt" type="text" id="fsDatum" maxlength="30" placeholder="Datum" aria-label="Datum" style="flex:1 1 140px">
+    </div>
+    <div class="row">
+      <input class="txt" type="text" id="fsSamling" maxlength="30" placeholder="Samling" aria-label="Samling" style="flex:1 1 140px">
+      <input class="txt" type="text" id="fsMatchstart" maxlength="30" placeholder="Matchstart" aria-label="Matchstart" style="flex:1 1 140px">
+    </div>
+    <div class="row">
+      <button type="button" class="btn primary" id="fsSave">Skapa förstasida</button>
+      <button type="button" class="btn" id="fsCancel">Avbryt</button>
     </div>
   </div>
 </div>

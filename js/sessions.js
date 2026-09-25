@@ -2,7 +2,9 @@
 /* ---------- Sessioner ---------- */
 var sessions=[], sesArmed=null, sesTimer=null;
 /* Aktiv session: det som senast laddades/sparades, och utgångsläget för att upptäcka ändringar */
-var activeSesId=null, sesBase=null, sesBaseStr=null, fsBaseSig=null, sesFlags={ses:false,fs:false};
+var activeSesId=null, sesBase=null, sesBaseStr=null, fsBaseSig=null, sesFlags={ses:false,fs:false,hasFs:false};
+/* Förstasidans uppgifter (hemma/borta, motstånd, datum, samling, matchstart) för den aktuella förstasidan */
+var fsInfoCur=null;
 function has(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
 function num(v,a,b,def){ v=+v; return isFinite(v)?clamp(v,a,b):def; }
 function sanitizePhases(arr){
@@ -51,11 +53,11 @@ function serialize(name){
     customSets:customSets.map(function(r){ return {name:r.name,ts:r.ts,data:r.data}; }),
     squad:squad.map(function(r){ return {num:r.num,name:r.name,status:r.status||null}; }),
     logo:logoData||null,
-    fsInfo:getFsInputs()
+    fsInfo:fsInfoCur?cloneData(fsInfoCur):null
   };
 }
 
-/* Förstasidans fält (hemma/borta, motstånd, datum, samling, matchstart) sparas med sessionen */
+/* Fälten i förstasidans dialog */
 function getFsInputs(){
   return {
     side:(document.querySelector('input[name="fsSide"]:checked')||{}).value||'hemma',
@@ -70,6 +72,9 @@ function setFsInputs(f){
   var r=document.querySelector('input[name="fsSide"][value="'+(f.side==='borta'?'borta':'hemma')+'"]'); if(r) r.checked=true;
   $('#fsMotstand').value=f.motstand||''; $('#fsDatum').value=f.datum||'';
   $('#fsSamling').value=f.samling||''; $('#fsMatchstart').value=f.matchstart||'';
+}
+function fsHeader(f){
+  return f?{side:f.side==='borta'?'borta':'hemma',motstand:f.motstand||'',datum:f.datum||'',samling:f.samling||'',matchstart:f.matchstart||''}:null;
 }
 function sanitizeFs(f){
   if(!f||typeof f!=='object') return null;
@@ -115,11 +120,13 @@ function setActiveSession(id){
 function refreshSesFlags(force){
   if(state.playing&&!force) return;
   var on=!!activeSession();
-  var f={ses:on&&JSON.stringify(sesLight(serialize('')))!==sesBaseStr, fs:on&&fsBaseSig!==null&&firstFsIndex(gallery)>=0&&squadSig()!==fsBaseSig};
-  if(!force&&f.ses===sesFlags.ses&&f.fs===sesFlags.fs) return;
+  var hasFs=firstFsIndex(gallery)>=0;
+  var f={ses:on&&JSON.stringify(sesLight(serialize('')))!==sesBaseStr, hasFs:hasFs, fs:hasFs&&fsBaseSig!==null&&squadSig()!==fsBaseSig};
+  if(!force&&f.ses===sesFlags.ses&&f.fs===sesFlags.fs&&f.hasFs===sesFlags.hasFs) return;
   sesFlags=f;
   document.querySelectorAll('#sesList [data-supd]').forEach(function(b){ b.disabled=!(b.dataset.supd===activeSesId&&f.ses); });
-  document.querySelectorAll('#sesList [data-sfs]').forEach(function(b){ b.disabled=!(b.dataset.sfs===activeSesId&&f.fs); });
+  $('#fsBtn').textContent=hasFs?'Update Förstasida':'Förstasida';
+  $('#fsTrupp').disabled=fsBusy||!f.fs;
 }
 setInterval(function(){ refreshSesFlags(false); },600);
 
@@ -182,7 +189,7 @@ function applySession(d){
   renderGallery();
   /* Äldre sessioner saknar fälten; ta dem då från förstasidan om den vet dem */
   var fsImg=gallery[firstFsIndex(gallery)];
-  setFsInputs(sanitizeFs(d.fsInfo)||(fsImg&&fsImg.fs)||null);
+  fsInfoCur=fsHeader(sanitizeFs(d.fsInfo)||(fsImg&&fsImg.fs)||null);
 
   anims=[];
   (Array.isArray(d.animations)?d.animations.slice(0,50):[]).forEach(function(a){
@@ -252,8 +259,7 @@ function renderSessions(){
        '<div class="row"><button type="button" class="btn primary" data-sload="'+r.id+'">Ladda</button>'+
        (dlCap?'<button type="button" class="btn" data-sexp="'+r.id+'">Exportera</button>':'')+
        '<button type="button" class="btn" data-sdel="'+r.id+'">'+(sesArmed===r.id?'Bekräfta':'Ta bort')+'</button></div>'+
-       '<div class="row"><button type="button" class="btn" data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled')+' title="Spara ändringarna i den laddade sessionen">Update</button>'+
-       '<button type="button" class="btn" data-sfs="'+r.id+'"'+(act&&sesFlags.fs?'':' disabled')+' title="Skapa om förstasidan utifrån truppen">Update Förstasida</button></div></article>';
+       '<div class="row"><button type="button" class="btn" data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled')+' title="Spara ändringarna i den laddade sessionen">Update</button></div></article>';
   });
   g.innerHTML=h;
 }
@@ -264,7 +270,6 @@ function saveSessionRecord(name,data){
   return tx('readwrite',function(st){return st.put(rec)},'ses');
 }
 
-$('#sesForstasida').addEventListener('change',function(e){ $('#fsFields').hidden=!e.target.checked; });
 
 function drawWrappedCenter(ctx,text,cx,y,maxW,lineH){
   var words=String(text).split(/\s+/).filter(Boolean), line='', lines=[];
@@ -420,51 +425,78 @@ function makeForstasida(info){
   });
 }
 
-function maybeCreateForstasida(){
-  if(!$('#sesForstasida').checked) return Promise.resolve();
-  var info=getFsInputs();
-  return makeForstasida(info).then(function(dataUrl){
-    info.sig=squadSig();
-    var rec={id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:Date.now(),data:dataUrl,fs:info};
-    gallery=replaceFs(gallery,rec);
-    renderGallery();
-  }).catch(function(){ sesMsg('Kunde inte skapa förstasidan, men sessionen sparas ändå.'); });
+/* ---------- Förstasidan: skapa, uppdatera och uppdatera truppen ---------- */
+var fsBusy=false;
+/* Lägg in en ny förstasida i stället för den gamla, bland bilderna och i den laddade sessionen.
+   Utgångsläget för ändringar får samma bild och uppgifter, så bytet räknas inte som en osparad ändring. */
+function commitFs(dataUrl,info,header){
+  var ts=Date.now();
+  gallery=replaceFs(gallery,{id:'i'+ts.toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:ts,data:dataUrl,fs:info});
+  renderGallery();
+  if(header) fsInfoCur=fsHeader(header);
+  fsBaseSig=info.sig;
+  var rec=activeSession();
+  if(!rec){ refreshSesFlags(true); return Promise.resolve(false); }
+  var im={name:'Förstasida',ts:ts,data:dataUrl,fs:cloneData(info)};
+  rec.data.images=replaceFs(rec.data.images||[],im);
+  sesBase.images=replaceFs(sesBase.images,{s:imgSig(im),name:'Förstasida',fs:true});
+  if(header){ rec.data.fsInfo=cloneData(fsInfoCur); sesBase.fsInfo=cloneData(fsInfoCur); }
+  sesBaseStr=JSON.stringify(sesBase);
+  refreshSesFlags(true);
+  return tx('readwrite',function(st){return st.put(rec)},'ses');
 }
+function fsDone(what){
+  return function(ok){
+    fsBusy=false; refreshSesFlags(true);
+    galMsg(what+(activeSession()?(ok?' och sparades i sessionen.':', men sessionen kunde inte sparas i webbläsaren.'):'. Tryck på Spara session för att spara den med sessionen.'));
+  };
+}
+function fsFail(){ fsBusy=false; refreshSesFlags(true); galMsg('Det gick inte att skapa förstasidan i den här webbläsaren.'); }
 
-/* Uppdatera spelarlistan på den aktiva sessionens förstasida utifrån truppen. Resten av bilden
-   behålls. Den gamla ersätts både bland bilderna och i den sparade sessionen; övriga osparade
-   ändringar lämnas orörda. */
-function updateForstasida(rec){
-  var old=gallery[firstFsIndex(gallery)]; if(!old) return;
-  var btn=document.querySelector('#sesList [data-sfs="'+rec.id+'"]'); if(btn) btn.disabled=true;
-  var info=cloneData(old.fs||{});
-  var sig=squadSig();
-  redrawFsList(old).then(function(res){
-    var dataUrl=res.data;
-    info.sig=sig; info.listY=res.listY;
-    var ts=Date.now();
-    gallery=replaceFs(gallery,{id:'i'+ts.toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:ts,data:dataUrl,fs:info});
-    renderGallery();
-    var im={name:'Förstasida',ts:ts,data:dataUrl,fs:cloneData(info)};
-    rec.data.images=replaceFs(rec.data.images||[],im);
-    /* Utgångsläget får samma bilder, så att bytet inte räknas som en osparad ändring */
-    sesBase.images=replaceFs(sesBase.images,{s:imgSig(im),name:'Förstasida',fs:true});
-    sesBaseStr=JSON.stringify(sesBase);
-    fsBaseSig=sig;
-    refreshSesFlags(true);
-    return tx('readwrite',function(st){return st.put(rec)},'ses');
-  }).then(function(ok){
-    sesMsg(ok?'Förstasidan uppdaterades.':'Förstasidan uppdaterades men sessionen kunde inte sparas i webbläsaren.');
-  }).catch(function(){ sesMsg('Det gick inte att skapa förstasidan.'); refreshSesFlags(true); });
+/* Dialogen: tomma fält för en ny förstasida, annars den befintliga förstasidans uppgifter */
+function openFsModal(){
+  if(state.playing) return;
+  hidePop();
+  var has=firstFsIndex(gallery)>=0;
+  setFsInputs(has?fsInfoCur:null);
+  $('#fsTitle').textContent=has?'Uppdatera förstasida':'Förstasida';
+  $('#fsSave').textContent=has?'Uppdatera förstasida':'Skapa förstasida';
+  $('#fsModal').hidden=false;
+  setTimeout(function(){ $('#fsMotstand').focus(); },30);
 }
+function closeFsModal(){ $('#fsModal').hidden=true; }
+$('#fsBtn').addEventListener('click',openFsModal);
+$('#fsCancel').addEventListener('click',closeFsModal);
+$('#fsModal').addEventListener('click',function(e){ if(e.target===$('#fsModal')) closeFsModal(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('#fsModal').hidden) closeFsModal(); });
+['#fsMotstand','#fsDatum','#fsSamling','#fsMatchstart'].forEach(function(id){
+  $(id).addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('#fsSave').click(); } });
+});
+$('#fsSave').addEventListener('click',function(){
+  if(fsBusy) return;
+  var info=getFsInputs(), header=cloneData(info), had=firstFsIndex(gallery)>=0;
+  info.sig=squadSig();
+  fsBusy=true; closeFsModal();
+  makeForstasida(info).then(function(dataUrl){ return commitFs(dataUrl,info,header); })
+    .then(fsDone(had?'Förstasidan uppdaterades':'Förstasidan skapades')).catch(fsFail);
+});
+
+/* Update truppen: rita bara om spelarlistan, resten av förstasidan behålls */
+$('#fsTrupp').addEventListener('click',function(){
+  var old=gallery[firstFsIndex(gallery)]; if(!old||fsBusy||state.playing) return;
+  var info=cloneData(old.fs||{}), sig=squadSig();
+  fsBusy=true; this.disabled=true;
+  redrawFsList(old).then(function(res){
+    info.sig=sig; info.listY=res.listY;
+    return commitFs(res.data,info,null);
+  }).then(fsDone('Spelarlistan på förstasidan uppdaterades')).catch(fsFail);
+});
 
 $('#sesSave').addEventListener('click',function(){
   if(state.playing) return;
   var name=$('#sesName').value.trim()||defaultName();
-  maybeCreateForstasida().then(function(){
-    saveSessionRecord(name,serialize(name)).then(function(ok){
-      sesMsg(ok?'Sparade sessionen "'+name+'".':'Sessionen finns i listan men kunde inte sparas i webbläsaren. Exportera den som fil för att behålla den.');
-    });
+  saveSessionRecord(name,serialize(name)).then(function(ok){
+    sesMsg(ok?'Sparade sessionen "'+name+'".':'Sessionen finns i listan men kunde inte sparas i webbläsaren. Exportera den som fil för att behålla den.');
   });
   $('#sesName').value='';
 });
@@ -491,7 +523,7 @@ $('#sesFile').addEventListener('change',function(e){
 
 $('#sesList').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b) return;
-  var id=b.dataset.sload||b.dataset.sexp||b.dataset.sdel||b.dataset.supd||b.dataset.sfs;
+  var id=b.dataset.sload||b.dataset.sexp||b.dataset.sdel||b.dataset.supd;
   var rec=sessions.filter(function(r){return r.id===id})[0];
   if(!rec) return;
   if(b.dataset.sload){
@@ -505,9 +537,6 @@ $('#sesList').addEventListener('click',function(e){
     tx('readwrite',function(st){return st.put(rec)},'ses').then(function(ok){
       sesMsg(ok?'Uppdaterade sessionen "'+rec.name+'".':'Sessionen uppdaterades i listan men kunde inte sparas i webbläsaren.');
     });
-  } else if(b.dataset.sfs){
-    if(state.playing||id!==activeSesId) return;
-    updateForstasida(rec);
   } else if(b.dataset.sexp){
     if(!dlCap) return;
     dlCap.save({filename:fileName(rec.name,'json'),data:JSON.stringify(Object.assign({},rec.data,{name:rec.name}))}).then(function(){
