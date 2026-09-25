@@ -426,9 +426,10 @@ function makeForstasida(info){
 }
 
 /* ---------- Förstasidan: skapa, uppdatera och uppdatera truppen ---------- */
-var fsBusy=false;
+var fsBusy=false, fsMsg=msgFn('#fsMsg');
 /* Lägg in en ny förstasida i stället för den gamla, bland bilderna och i den laddade sessionen.
-   Utgångsläget för ändringar får samma bild och uppgifter, så bytet räknas inte som en osparad ändring. */
+   Truppen (uttagningen) som förstasidan visar sparas samtidigt i sessionen. Utgångsläget för
+   ändringar får samma bild, trupp och uppgifter, så de räknas inte som osparade ändringar. */
 function commitFs(dataUrl,info,header){
   var ts=Date.now();
   gallery=replaceFs(gallery,{id:'i'+ts.toString(36)+Math.random().toString(36).slice(2,6),name:'Förstasida',ts:ts,data:dataUrl,fs:info});
@@ -441,6 +442,8 @@ function commitFs(dataUrl,info,header){
   rec.data.images=replaceFs(rec.data.images||[],im);
   sesBase.images=replaceFs(sesBase.images,{s:imgSig(im),name:'Förstasida',fs:true});
   if(header){ rec.data.fsInfo=cloneData(fsInfoCur); sesBase.fsInfo=cloneData(fsInfoCur); }
+  var cur=serialize(''), light=sesLight(cur);
+  ['squad','labels','customNum'].forEach(function(k){ rec.data[k]=cloneData(cur[k]); sesBase[k]=cloneData(light[k]); });
   sesBaseStr=JSON.stringify(sesBase);
   refreshSesFlags(true);
   return tx('readwrite',function(st){return st.put(rec)},'ses');
@@ -461,6 +464,7 @@ function openFsModal(){
   setFsInputs(has?fsInfoCur:null);
   $('#fsTitle').textContent=has?'Uppdatera förstasida':'Förstasida';
   $('#fsSave').textContent=has?'Uppdatera förstasida':'Skapa förstasida';
+  fsMsg('');
   $('#fsModal').hidden=false;
   setTimeout(function(){ $('#fsMotstand').focus(); },30);
 }
@@ -481,7 +485,7 @@ $('#fsSave').addEventListener('click',function(){
     .then(fsDone(had?'Förstasidan uppdaterades':'Förstasidan skapades')).catch(fsFail);
 });
 
-/* Update truppen: rita bara om spelarlistan, resten av förstasidan behålls */
+/* Update truppen (i dialogen): spara truppen och rita om spelarlistan, resten av förstasidan behålls */
 $('#fsTrupp').addEventListener('click',function(){
   var old=gallery[firstFsIndex(gallery)]; if(!old||fsBusy||state.playing) return;
   var info=cloneData(old.fs||{}), sig=squadSig();
@@ -489,7 +493,10 @@ $('#fsTrupp').addEventListener('click',function(){
   redrawFsList(old).then(function(res){
     info.sig=sig; info.listY=res.listY;
     return commitFs(res.data,info,null);
-  }).then(fsDone('Spelarlistan på förstasidan uppdaterades')).catch(fsFail);
+  }).then(function(ok){
+    fsDone('Truppen och spelarlistan på förstasidan uppdaterades')(ok);
+    fsMsg(activeSession()?(ok?'Truppen sparades och förstasidan uppdaterades.':'Förstasidan uppdaterades men sessionen kunde inte sparas i webbläsaren.'):'Förstasidan uppdaterades. Tryck på Spara session för att spara den.');
+  }).catch(function(){ fsFail(); fsMsg('Det gick inte att uppdatera förstasidan.'); });
 });
 
 $('#sesSave').addEventListener('click',function(){
