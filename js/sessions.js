@@ -256,10 +256,10 @@ function renderSessions(){
     var d=r.data||{}, sub=(d.n?d.n+' mot '+d.n+', ':'')+(d.myForm||'')+' mot '+(d.oppForm||'');
     var act=r.id===activeSesId;
     h+='<article class="card'+(act?' ses-active':'')+'"'+(act?' aria-current="true"':'')+'><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+((d.animations&&d.animations.length)||0)+' animationer, '+((d.images&&d.images.length)||0)+' bilder</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
-       '<div class="row"><button type="button" class="btn primary" data-sload="'+r.id+'">Ladda</button>'+
-       (dlCap?'<button type="button" class="btn" data-sexp="'+r.id+'">Exportera</button>':'')+
-       '<button type="button" class="btn" data-sdel="'+r.id+'">'+(sesArmed===r.id?'Bekräfta':'Ta bort')+'</button></div>'+
-       '<div class="row"><button type="button" class="btn" data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled')+' title="Spara ändringarna i den laddade sessionen">Update</button></div></article>';
+       '<div class="row icon-row">'+iconBtn('load','Ladda','data-sload="'+r.id+'"','primary')+
+       (dlCap?iconBtn('export','Exportera','data-sexp="'+r.id+'"'):'')+
+       delBtn(sesArmed===r.id,'data-sdel="'+r.id+'"')+
+       iconBtn('save','Update','data-supd="'+r.id+'"'+(act&&sesFlags.ses?'':' disabled'),'','Update: spara ändringarna i den laddade sessionen')+'</div></article>';
   });
   g.innerHTML=h;
 }

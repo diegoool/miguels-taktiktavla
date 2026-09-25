@@ -54,8 +54,8 @@ function renderCustomSets(){
   customSets.forEach(function(r){
     var d=r.data, sub=d.n+' mot '+d.n+', '+d.myForm+' — '+d.ann.length+' ritning(ar)';
     h+='<article class="card'+(editingCsId===r.id?' sel':'')+'"><div class="cn">'+esc(r.name)+'</div><div class="cd">'+esc(sub)+'</div><div class="cd">'+fmtDate(r.ts)+'</div>'+
-       '<div class="row"><button type="button" class="btn primary" data-csedit="'+r.id+'">Redigera</button>'+
-       '<button type="button" class="btn" data-csdel="'+r.id+'">'+(csArmed===r.id?'Bekräfta':'Ta bort')+'</button></div></article>';
+       '<div class="row icon-row">'+iconBtn('edit','Redigera','data-csedit="'+r.id+'"','primary')+
+       delBtn(csArmed===r.id,'data-csdel="'+r.id+'"')+'</div></article>';
   });
   g.innerHTML=h;
 }

@@ -52,8 +52,8 @@ function renderGallery(){
        '<button type="button" class="thumb" data-view="'+r.id+'" aria-label="Visa '+esc(r.name)+'"><img src="'+r.data+'" alt=""></button>'+
        '<div class="card-head"><span class="draghandle" title="Dra för att ändra ordning" aria-hidden="true">⠿⠿</span><span class="cn">'+esc(r.name)+'</span></div>'+
        '<div class="cd">'+fmtDate(r.ts)+'</div>'+
-       '<div class="row">'+(dlCap?'<button type="button" class="btn" data-dl="'+r.id+'">Ladda ner</button>':'')+
-       '<button type="button" class="btn" data-del="'+r.id+'">'+(armedId===r.id?'Bekräfta':'Ta bort')+'</button></div></article>';
+       '<div class="row icon-row">'+(dlCap?iconBtn('download','Ladda ner','data-dl="'+r.id+'"'):'')+
+       delBtn(armedId===r.id,'data-del="'+r.id+'"')+'</div></article>';
   });
   g.innerHTML=h;
 }
